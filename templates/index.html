@@ -248,34 +248,58 @@ body::before {
 }
 
 /* Stat Cards */
-.card.border-primary,
-.card.border-success,
-.card.border-info,
-.card.border-warning {
+.stat-card {
   position: relative;
   overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--card-bg);
+  border: 1px solid var(--border-medium);
+  box-shadow: var(--shadow-card);
+  transition: all 0.25s ease;
 }
-.card.border-primary .card-body,
-.card.border-success .card-body,
-.card.border-info .card-body,
-.card.border-warning .card-body {
-  position: relative;
+.stat-card:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
 }
-.card.border-primary .card-body::before,
-.card.border-success .card-body::before,
-.card.border-info .card-body::before,
-.card.border-warning .card-body::before {
-  content: '';
+.stat-card .stat-icon {
   position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
+  right: 1rem;
+  bottom: 0.8rem;
+  font-size: 2.8rem;
+  opacity: 0.12;
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
-.card.border-primary .card-body::before { background: var(--accent-gradient); }
-.card.border-success .card-body::before { background: var(--success-gradient); }
-.card.border-info .card-body::before { background: var(--info-gradient); }
-.card.border-warning .card-body::before { background: var(--warning-gradient); }
-
-.card-subtitle { font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.stat-card:hover .stat-icon {
+  opacity: 0.2;
+  transform: scale(1.1);
+}
+.stat-card .stat-bar {
+  height: 3px;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+.stat-card .stat-body {
+  padding: 1.2rem 1.2rem 0.8rem;
+  position: relative;
+  z-index: 1;
+}
+.stat-card .stat-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+.stat-card .stat-number {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.2;
+  margin: 0;
+}
+.stat-bar.primary { background: var(--accent-gradient); }
+.stat-bar.success { background: var(--success-gradient); }
+.stat-bar.info { background: var(--info-gradient); }
+.stat-bar.warning { background: var(--warning-gradient); }
 
 /* ===== Buttons ===== */
 .btn {
@@ -631,55 +655,43 @@ code {
       <!-- Stats Cards -->
       <div class="row g-3 mb-4">
         <div class="col-md-3">
-          <div class="card border-primary">
-            <div class="card-body">
-              <div class="d-flex justify-content-between">
-                <div>
-                  <h6 class="card-subtitle text-secondary">插件表</h6>
-                  <h3 class="mt-1" id="statPlugins">0</h3>
-                </div>
-                <i class="bi bi-table fs-1 text-primary opacity-50"></i>
-              </div>
+          <div class="stat-card">
+            <div class="stat-body">
+              <div class="stat-label">插件表</div>
+              <div class="stat-number" style="color:#818cf8" id="statPlugins">0</div>
             </div>
+            <i class="bi bi-table stat-icon" style="color:#818cf8"></i>
+            <div class="stat-bar primary"></div>
           </div>
         </div>
         <div class="col-md-3">
-          <div class="card border-success">
-            <div class="card-body">
-              <div class="d-flex justify-content-between">
-                <div>
-                  <h6 class="card-subtitle text-secondary">日期文件夹</h6>
-                  <h3 class="mt-1" id="statFolders">0</h3>
-                </div>
-                <i class="bi bi-folder2-open fs-1 text-success opacity-50"></i>
-              </div>
+          <div class="stat-card">
+            <div class="stat-body">
+              <div class="stat-label">日期文件夹</div>
+              <div class="stat-number" style="color:#22c55e" id="statFolders">0</div>
             </div>
+            <i class="bi bi-folder2-open stat-icon" style="color:#22c55e"></i>
+            <div class="stat-bar success"></div>
           </div>
         </div>
         <div class="col-md-3">
-          <div class="card border-info">
-            <div class="card-body">
-              <div class="d-flex justify-content-between">
-                <div>
-                  <h6 class="card-subtitle text-secondary">已排序插件</h6>
-                  <h3 class="mt-1" id="statSorted">0</h3>
-                </div>
-                <i class="bi bi-check-circle fs-1 text-info opacity-50"></i>
-              </div>
+          <div class="stat-card">
+            <div class="stat-body">
+              <div class="stat-label">已排序插件</div>
+              <div class="stat-number" style="color:#06b6d4" id="statSorted">0</div>
             </div>
+            <i class="bi bi-check-circle stat-icon" style="color:#06b6d4"></i>
+            <div class="stat-bar info"></div>
           </div>
         </div>
         <div class="col-md-3">
-          <div class="card border-warning">
-            <div class="card-body">
-              <div class="d-flex justify-content-between">
-                <div>
-                  <h6 class="card-subtitle text-secondary">待匹配</h6>
-                  <h3 class="mt-1" id="statUnmatched">0</h3>
-                </div>
-                <i class="bi bi-question-circle fs-1 text-warning opacity-50"></i>
-              </div>
+          <div class="stat-card">
+            <div class="stat-body">
+              <div class="stat-label">待匹配</div>
+              <div class="stat-number" style="color:#eab308" id="statUnmatched">0</div>
             </div>
+            <i class="bi bi-question-circle stat-icon" style="color:#eab308"></i>
+            <div class="stat-bar warning"></div>
           </div>
         </div>
       </div>
