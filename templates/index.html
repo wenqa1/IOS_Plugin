@@ -639,36 +639,37 @@ code {
 
     <!-- ==================== WEBDAV CONNECT ==================== -->
     <section id="page-webdav" class="page-section">
-      <h4 class="mb-4"><i class="bi bi-hdd-network"></i> WebDAV 连接</h4>
+      <h4 class="mb-4"><i class="bi bi-hdd-network"></i> 文件管理器</h4>
 
       <div class="row g-3">
-        <div class="col-md-7">
+        <div class="col-md-12">
           <div class="card">
-            <div class="card-header"><i class="bi bi-plug"></i> 自定义网络位置</div>
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <span><i class="bi bi-plug"></i> 文件管理器地址</span>
+              <span id="filemgrStatus" class="text-secondary small">未连接</span>
+            </div>
             <div class="card-body">
-              <div class="mb-3">
-                <label class="form-label">WebDAV 地址</label>
-                <div class="input-group">
-                  <input type="text" class="form-control" id="webdavInput"
-                         placeholder="http://192.168.1.100:5001"
-                         value="http://localhost:5001">
-                  <button class="btn btn-primary" onclick="connectWebdav()">
-                    <i class="bi bi-link-45deg"></i> 连接
-                  </button>
-                </div>
-                <small class="text-secondary">输入 WebDAV 服务器地址，点击连接测试</small>
+              <div class="input-group mb-2">
+                <input type="text" class="form-control" id="webdavInput"
+                       placeholder="http://192.168.0.104:8088/"
+                       value="http://192.168.0.104:8088/">
+                <button class="btn btn-primary" id="connectBtn" onclick="connectFileManager()">
+                  <i class="bi bi-link-45deg"></i> 连接
+                </button>
               </div>
-              <div id="webdavConnectResult"></div>
             </div>
           </div>
-          <div class="card mt-3">
-            <div class="card-header"><i class="bi bi-info-circle"></i> 连接说明</div>
-            <div class="card-body small">
-              <ul class="mb-0">
-                <li>本机 WebDAV 地址为 <code id="davLocalUrl">加载中...</code></li>
-                <li>连接成功后可复制地址到 Windows 「添加网络位置」映射为网络驱动器</li>
-                <li>连接失败请检查地址是否正确、服务是否启动、防火墙是否放行端口</li>
-              </ul>
+        </div>
+        <div class="col-md-12" id="filemgrFrameWrap" style="display:none">
+          <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center py-1">
+              <span><i class="bi bi-window"></i> <span id="filemgrTitle">文件管理器</span></span>
+              <button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('filemgrFrame').src = document.getElementById('webdavInput').value.trim()">
+                <i class="bi bi-arrow-clockwise"></i> 刷新
+              </button>
+            </div>
+            <div class="card-body p-0" style="height:70vh">
+              <iframe id="filemgrFrame" src="" style="width:100%;height:100%;border:none;border-radius:0 0 var(--radius-lg) var(--radius-lg)"></iframe>
             </div>
           </div>
         </div>
@@ -882,11 +883,9 @@ function switchPage(page) {
   if (page === 'plugins') loadPlugins();
   if (page === 'folders') loadFolders();
   if (page === 'webdav') {
-    // Show local WebDAV URL for reference
-    api('/api/info').then(info => {
-      document.getElementById('davLocalUrl').textContent = `http://localhost:${info.webdav_port}`;
-      document.getElementById('webdavInput').placeholder = `http://${info.hostname}:${info.webdav_port}`;
-    }).catch(() => {});
+    // Reset status display
+    document.getElementById('filemgrStatus').textContent = '未连接';
+    document.getElementById('filemgrStatus').className = 'text-secondary small';
   }
   if (page === 'output') loadOutput();
   if (page === 'settings') loadSettings();
@@ -1306,56 +1305,45 @@ async function clearOutput() {
   } catch (e) { if (e.message) showToast(e.message, '错误', 'danger'); }
 }
 
-// ===================== WEBDAV CONNECT =====================
-async function connectWebdav() {
+// ===================== FILE MANAGER =====================
+async function connectFileManager() {
   const url = document.getElementById('webdavInput').value.trim();
-  const resultDiv = document.getElementById('webdavConnectResult');
-  if (!url) {
-    resultDiv.innerHTML = '<div class="alert alert-warning mb-0"><i class="bi bi-exclamation-triangle"></i> 请输入 WebDAV 地址</div>';
-    return;
-  }
+  const btn = document.getElementById('connectBtn');
+  const status = document.getElementById('filemgrStatus');
+  const frameWrap = document.getElementById('filemgrFrameWrap');
 
-  resultDiv.innerHTML = '<div class="text-center py-2"><div class="spinner-border spinner-border-sm"></div> 正在连接...</div>';
+  if (!url) { showToast('请输入地址', '提示', 'warning'); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 连接中...';
+  status.textContent = '连接中...';
 
   try {
     const data = await api('/api/webdav-test', {
       method: 'POST',
       body: JSON.stringify({ url }),
     });
+
     if (data.success) {
-      resultDiv.innerHTML = `<div class="alert alert-success mb-0">
-        <i class="bi bi-check-circle"></i> 连接成功!
-        <br><small>地址: <code>${escHtml(url)}</code></small>
-        <br><small class="text-secondary">可复制此地址在 Windows 「添加网络位置」中映射为网络驱动器</small>
-      </div>`;
+      status.textContent = '已连接';
+      status.className = 'text-success small';
+      document.getElementById('filemgrTitle').textContent = url;
+      document.getElementById('filemgrFrame').src = url;
+      frameWrap.style.display = '';
+      showToast('连接成功', '成功', 'success');
     } else {
-      resultDiv.innerHTML = `<div class="alert alert-danger mb-0">
-        <i class="bi bi-x-circle"></i> 连接失败
-        <br><small>${escHtml(data.error || '未知错误')}</small>
-      </div>`;
+      status.textContent = '连接失败';
+      status.className = 'text-danger small';
+      showToast('连接失败: ' + (data.error || ''), '错误', 'danger');
     }
   } catch (e) {
-    resultDiv.innerHTML = `<div class="alert alert-danger mb-0">
-      <i class="bi bi-x-circle"></i> 连接失败
-      <br><small>${escHtml(e.message)}</small>
-    </div>`;
+    status.textContent = '连接失败';
+    status.className = 'text-danger small';
+    showToast('连接失败: ' + e.message, '错误', 'danger');
   }
-}
 
-function copyText(el) {
-  const text = el.textContent || el.innerText;
-  navigator.clipboard.writeText(text).then(() => {
-    showToast('已复制到剪贴板', '成功', 'success');
-  }).catch(() => {
-    // Fallback
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    showToast('已复制到剪贴板', '成功', 'success');
-  });
+  btn.disabled = false;
+  btn.innerHTML = '<i class="bi bi-link-45deg"></i> 连接';
 }
 
 // ===================== SETTINGS =====================
