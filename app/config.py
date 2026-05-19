@@ -129,12 +129,6 @@ class PluginTable:
     def get_all(self):
         return list(self._entries)
 
-    def get(self, entry_id):
-        for e in self._entries:
-            if e['id'] == entry_id:
-                return dict(e)
-        return None
-
     def add(self, name, keyword='', remark=''):
         entry = {
             'id': self._next_id,

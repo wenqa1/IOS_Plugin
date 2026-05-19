@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IOS_Plugin - iOS 插件管理工具</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%236366f1'/%3E%3Cpath d='M9 13h14l-2 10H11z' fill='white' opacity='.9'/%3E%3Crect x='8' y='10' width='16' height='3' rx='1' fill='white' opacity='.7'/%3E%3C/svg%3E">
 <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 <link href="https://fonts.loli.net/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -15,14 +16,66 @@
   --radius-xl: 20px;
   --radius-pill: 50rem;
   --sidebar-width: 240px;
-  --card-bg: #15151f;
-  --sidebar-bg: #0d0d16;
+  --accent: #818cf8;
+  --accent-gradient: linear-gradient(135deg, #6366f1, #818cf8);
+  --success-gradient: linear-gradient(135deg, #22c55e, #4ade80);
+  --danger-gradient: linear-gradient(135deg, #ef4444, #f87171);
+  --info-gradient: linear-gradient(135deg, #06b6d4, #22d3ee);
+  --warning-gradient: linear-gradient(135deg, #eab308, #facc15);
+}
+
+[data-bs-theme="dark"] {
   --body-bg: #08080e;
+  --sidebar-bg: #0d0d16;
+  --card-bg: #15151f;
+  --modal-bg: #1a1a28;
+  --toast-bg: #1e1e2e;
+  --text-primary: #e0e0e8;
+  --text-secondary: rgba(255,255,255,0.4);
+  --text-muted: rgba(255,255,255,0.25);
   --border-subtle: rgba(255,255,255,0.05);
   --border-medium: rgba(255,255,255,0.08);
+  --border-strong: rgba(255,255,255,0.15);
+  --hover-bg: rgba(255,255,255,0.03);
+  --hover-bg-strong: rgba(255,255,255,0.06);
+  --input-bg: rgba(255,255,255,0.04);
+  --nav-color: rgba(255,255,255,0.55);
+  --nav-hover: rgba(255,255,255,0.85);
+  --scrollbar-thumb: rgba(255,255,255,0.08);
+  --scrollbar-thumb-hover: rgba(255,255,255,0.15);
   --shadow-card: 0 4px 20px rgba(0,0,0,0.3);
   --shadow-hover: 0 8px 30px rgba(0,0,0,0.4);
   --nav-active-gradient: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(99,102,241,0.05));
+  --btn-close-filter: invert(0.6);
+  --placeholder-color: rgba(255,255,255,0.25);
+  --glow-accent: rgba(99,102,241,0.15);
+}
+
+[data-bs-theme="light"] {
+  --body-bg: #f0f2f5;
+  --sidebar-bg: #f8f9fc;
+  --card-bg: #ffffff;
+  --modal-bg: #ffffff;
+  --toast-bg: #ffffff;
+  --text-primary: #1a1a2e;
+  --text-secondary: rgba(0,0,0,0.45);
+  --text-muted: rgba(0,0,0,0.25);
+  --border-subtle: rgba(0,0,0,0.06);
+  --border-medium: rgba(0,0,0,0.10);
+  --border-strong: rgba(0,0,0,0.18);
+  --hover-bg: rgba(0,0,0,0.03);
+  --hover-bg-strong: rgba(0,0,0,0.06);
+  --input-bg: rgba(0,0,0,0.03);
+  --nav-color: rgba(0,0,0,0.50);
+  --nav-hover: rgba(0,0,0,0.80);
+  --scrollbar-thumb: rgba(0,0,0,0.10);
+  --scrollbar-thumb-hover: rgba(0,0,0,0.20);
+  --shadow-card: 0 4px 20px rgba(0,0,0,0.06);
+  --shadow-hover: 0 8px 30px rgba(0,0,0,0.10);
+  --nav-active-gradient: linear-gradient(135deg, rgba(99,102,241,0.10), rgba(99,102,241,0.02));
+  --btn-close-filter: none;
+  --placeholder-color: rgba(0,0,0,0.30);
+  --glow-accent: rgba(99,102,241,0.10);
 }
 
 * { box-sizing: border-box; }
@@ -31,10 +84,24 @@ body {
   font-family: 'Nunito', 'Microsoft YaHei UI', system-ui, -apple-system, sans-serif;
   background: var(--body-bg);
   min-height: 100vh;
-  color: #e0e0e8;
+  color: var(--text-primary);
+  transition: background 0.35s ease, color 0.35s ease;
 }
 
 .wrapper { display: flex; }
+
+/* ===== Background ===== */
+body::before {
+  content: '';
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background:
+    radial-gradient(ellipse at 20% 50%, var(--glow-accent) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(168,85,247,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 80%, rgba(59,130,246,0.04) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+.main-content, .sidebar { position: relative; z-index: 1; }
 
 /* ===== Sidebar ===== */
 .sidebar {
@@ -44,14 +111,15 @@ body {
   border-right: 1px solid var(--border-subtle);
   position: fixed; left: 0; top: 0;
   display: flex; flex-direction: column;
+  overflow-y: auto;
   z-index: 100;
 }
 .sidebar-header {
-  padding: 1.4rem 1.2rem 1.2rem;
+  padding: 1.2rem 1.2rem 0.8rem;
   border-bottom: 1px solid var(--border-subtle);
 }
 .sidebar-header h5 {
-  margin: 0;
+  margin: 0 0 2px;
   font-weight: 800;
   font-size: 1.15rem;
   background: linear-gradient(135deg, #818cf8, #a78bfa);
@@ -60,32 +128,80 @@ body {
   background-clip: text;
 }
 .sidebar-header small {
-  color: rgba(255,255,255,0.35);
+  color: var(--text-secondary);
   font-size: 0.75rem;
   font-weight: 500;
   letter-spacing: 0.5px;
 }
+/* Theme toggle in sidebar header */
+.sidebar-header .theme-toggle {
+  display: flex;
+  gap: 2px;
+  margin-top: 10px;
+  background: var(--hover-bg);
+  border-radius: var(--radius-pill);
+  padding: 2px;
+  border: 1px solid var(--border-subtle);
+}
+.sidebar-header .theme-btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 0.25rem 0.3rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.sidebar-header .theme-btn:hover { color: var(--text-primary); background: rgba(128,128,128,0.1); }
+.sidebar-header .theme-btn.active {
+  background: var(--card-bg);
+  color: var(--accent);
+  box-shadow: var(--shadow-card);
+  font-weight: 700;
+}
+.sidebar-header .theme-btn i { font-size: 0.75rem; }
 .nav { padding: 0.5rem 0; }
 .nav-link {
   padding: 0.6rem 1rem;
   margin: 2px 8px;
-  color: rgba(255,255,255,0.55);
+  color: var(--nav-color);
   border-radius: var(--radius-md);
   font-size: 0.88rem;
   font-weight: 500;
   transition: all 0.2s ease;
-  border-left: none;
+  position: relative;
+  overflow: hidden;
+}
+.nav-link::before {
+  content: '';
+  position: absolute; left: 0; top: 50%;
+  transform: translateY(-50%) scaleY(0);
+  width: 3px; height: 20px;
+  background: var(--accent);
+  border-radius: 0 3px 3px 0;
+  transition: transform 0.2s ease;
 }
 .nav-link:hover {
-  color: rgba(255,255,255,0.85);
-  background: rgba(255,255,255,0.04);
-  transform: translateX(2px);
+  color: var(--nav-hover);
+  background: var(--hover-bg);
+  transform: translateX(4px);
 }
 .nav-link.active {
   background: var(--nav-active-gradient);
-  color: #818cf8;
+  color: var(--accent);
   font-weight: 600;
   box-shadow: inset 0 0 0 1px rgba(99,102,241,0.15);
+}
+.nav-link.active::before {
+  transform: translateY(-50%) scaleY(1);
 }
 .nav-link i { margin-right: 10px; width: 20px; text-align: center; font-size: 1rem; }
 .main-content {
@@ -93,18 +209,19 @@ body {
   flex: 1; padding: 1.8rem 2rem;
   width: calc(100% - var(--sidebar-width));
 }
-.page-section { display: none; animation: fadeIn 0.25s ease; }
+.page-section { display: none; animation: fadeIn 0.3s ease; }
 .page-section.active { display: block; }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .sidebar-footer {
   margin-top: auto; padding: 1rem 1.2rem;
   border-top: 1px solid var(--border-subtle);
-  font-size: 0.75rem; color: rgba(255,255,255,0.3);
+  font-size: 0.75rem; color: var(--text-secondary);
+  transition: background 0.35s ease, border-color 0.35s ease;
 }
 
 /* ===== Cards ===== */
@@ -118,17 +235,15 @@ body {
 }
 .card:hover { box-shadow: var(--shadow-hover); }
 .card-header {
-  background: rgba(255,255,255,0.02);
+  background: rgba(128,128,128,0.03);
   border-bottom: 1px solid var(--border-subtle);
   padding: 0.9rem 1.2rem;
   font-weight: 600;
-  border-radius: 0 !important;
 }
 .card-body { padding: 1.2rem; }
 .card-footer {
-  background: rgba(255,255,255,0.01);
+  background: rgba(128,128,128,0.02);
   border-top: 1px solid var(--border-subtle);
-  border-radius: 0 !important;
   padding: 0.75rem 1.2rem;
 }
 
@@ -154,12 +269,11 @@ body {
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 3px;
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
-.card.border-primary .card-body::before { background: linear-gradient(90deg, #6366f1, #818cf8); }
-.card.border-success .card-body::before { background: linear-gradient(90deg, #22c55e, #4ade80); }
-.card.border-info .card-body::before { background: linear-gradient(90deg, #06b6d4, #22d3ee); }
-.card.border-warning .card-body::before { background: linear-gradient(90deg, #eab308, #facc15); }
+.card.border-primary .card-body::before { background: var(--accent-gradient); }
+.card.border-success .card-body::before { background: var(--success-gradient); }
+.card.border-info .card-body::before { background: var(--info-gradient); }
+.card.border-warning .card-body::before { background: var(--warning-gradient); }
 
 .card-subtitle { font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
 
@@ -177,50 +291,53 @@ body {
 .btn-sm { padding: 0.25rem 0.8rem; font-size: 0.78rem; }
 .btn-lg { padding: 0.6rem 1.8rem; font-size: 0.95rem; }
 .btn-outline-secondary {
-  border-color: rgba(255,255,255,0.15);
-  color: rgba(255,255,255,0.6);
+  border-color: var(--border-medium);
+  color: var(--text-secondary);
 }
 .btn-outline-secondary:hover {
-  border-color: rgba(255,255,255,0.3);
-  background: rgba(255,255,255,0.05);
-  color: rgba(255,255,255,0.85);
+  border-color: var(--border-strong);
+  background: var(--hover-bg-strong);
+  color: var(--text-primary);
 }
-.btn-primary { background: linear-gradient(135deg, #6366f1, #818cf8); border: none; }
+.btn-primary { background: var(--accent-gradient); border: none; }
 .btn-primary:hover { background: linear-gradient(135deg, #5558e6, #727ef5); }
-.btn-success { background: linear-gradient(135deg, #22c55e, #4ade80); border: none; color: #000 !important; }
-.btn-info { background: linear-gradient(135deg, #06b6d4, #22d3ee); border: none; color: #000 !important; }
-.btn-danger { background: linear-gradient(135deg, #ef4444, #f87171); border: none; }
+.btn-success { background: var(--success-gradient); border: none; color: #000 !important; }
+.btn-success:hover { box-shadow: 0 4px 14px rgba(34,197,94,0.3); }
+.btn-info { background: var(--info-gradient); border: none; color: #000 !important; }
+.btn-info:hover { box-shadow: 0 4px 14px rgba(6,182,212,0.3); }
+.btn-danger { background: var(--danger-gradient); border: none; }
+.btn-danger:hover { box-shadow: 0 4px 14px rgba(239,68,68,0.3); }
 
 /* ===== Form Controls ===== */
 .form-control, .input-group-text, .form-select {
   border-radius: var(--radius-md);
   border: 1px solid var(--border-medium);
-  background: rgba(255,255,255,0.04);
-  color: #e0e0e8;
+  background: var(--input-bg);
+  color: var(--text-primary);
   transition: all 0.2s ease;
   font-size: 0.88rem;
   padding: 0.45rem 0.9rem;
 }
 .form-control:focus, .form-select:focus {
   border-color: rgba(99,102,241,0.4);
-  background: rgba(255,255,255,0.06);
+  background: var(--input-bg);
   box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
-  color: #fff;
+  color: var(--text-primary);
 }
-.form-control::placeholder { color: rgba(255,255,255,0.25); }
+.form-control::placeholder { color: var(--placeholder-color); }
 .input-group-text {
-  background: rgba(255,255,255,0.04);
+  background: var(--input-bg);
   border: 1px solid var(--border-medium);
-  color: rgba(255,255,255,0.5);
+  color: var(--text-secondary);
 }
-.form-label { font-weight: 600; font-size: 0.85rem; color: rgba(255,255,255,0.7); }
+.form-label { font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); }
 .form-check-input { border-radius: var(--radius-sm); border: 1px solid var(--border-medium); }
-.form-range::-webkit-slider-thumb { border-radius: 50%; background: #818cf8; }
+.form-range::-webkit-slider-thumb { border-radius: 50%; background: var(--accent); }
 
 /* ===== Tables ===== */
 .table {
   --bs-table-bg: transparent;
-  --bs-table-color: #e0e0e8;
+  --bs-table-color: var(--text-primary);
   margin-bottom: 0;
 }
 .table thead th {
@@ -229,15 +346,24 @@ body {
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  color: rgba(255,255,255,0.4);
+  color: var(--text-secondary);
   padding: 0.75rem 0.5rem;
+}
+.table thead.theme-head {
+  --bs-table-bg: rgba(128,128,128,0.06);
+  --bs-table-color: var(--text-primary);
+}
+.table thead.theme-head th {
+  color: var(--text-secondary);
+  font-weight: 700;
+  letter-spacing: 0.5px;
 }
 .table td {
   border-bottom: 1px solid var(--border-subtle);
   padding: 0.7rem 0.5rem;
   vertical-align: middle;
 }
-.table-hover tbody tr:hover { background: rgba(255,255,255,0.02); }
+.table-hover tbody tr:hover { background: var(--hover-bg); }
 
 /* ===== Badges ===== */
 .badge {
@@ -255,11 +381,11 @@ body {
   text-align: center;
   cursor: pointer;
   transition: all 0.25s ease;
-  background: rgba(255,255,255,0.01);
+  background: var(--hover-bg);
 }
 .upload-zone:hover, .upload-zone.dragover {
   border-color: rgba(99,102,241,0.4);
-  background: rgba(99,102,241,0.04);
+  background: var(--glow-accent);
   transform: scale(1.01);
 }
 
@@ -271,20 +397,20 @@ body {
   border-bottom: 1px solid var(--border-subtle);
   padding: 0.75rem 1rem;
   transition: all 0.15s ease;
-  color: rgba(255,255,255,0.7);
+  color: var(--text-primary);
 }
 .list-group-item:last-child { border-bottom: none; }
-.list-group-item:hover { background: rgba(255,255,255,0.03); color: #fff; }
+.list-group-item:hover { background: var(--hover-bg); color: var(--text-primary); }
 .list-group-item.active {
   background: var(--nav-active-gradient);
   border-color: transparent;
-  color: #818cf8;
+  color: var(--accent);
   font-weight: 600;
 }
 
 /* ===== Modal ===== */
 .modal-content {
-  background: #1a1a28;
+  background: var(--modal-bg);
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-xl);
   box-shadow: 0 20px 60px rgba(0,0,0,0.5);
@@ -294,7 +420,7 @@ body {
   padding: 1.2rem 1.5rem;
   border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
 }
-.modal-header .btn-close { filter: invert(0.6); }
+.modal-header .btn-close { filter: var(--btn-close-filter); }
 .modal-body { padding: 1.5rem; }
 .modal-footer {
   border-top: 1px solid var(--border-subtle);
@@ -305,13 +431,13 @@ body {
 
 /* ===== Toast ===== */
 .toast {
-  background: #1e1e2e;
+  background: var(--toast-bg);
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-md);
   box-shadow: 0 8px 32px rgba(0,0,0,0.4);
 }
 .toast-header {
-  background: rgba(255,255,255,0.03);
+  background: var(--hover-bg);
   border-bottom: 1px solid var(--border-subtle);
   border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
@@ -319,12 +445,12 @@ body {
 /* ===== Others ===== */
 .empty-state {
   text-align: center; padding: 3rem 1rem;
-  color: rgba(255,255,255,0.25);
+  color: var(--text-muted);
 }
 .empty-state i { font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; }
 .version-cell { font-size: 0.82rem; font-weight: 600; }
 .server-url {
-  background: rgba(255,255,255,0.03);
+  background: var(--hover-bg);
   padding: 0.45rem 1rem;
   border-radius: var(--radius-md);
   font-family: 'Consolas', monospace;
@@ -334,7 +460,7 @@ body {
   transition: all 0.2s;
 }
 .server-url:hover {
-  background: rgba(255,255,255,0.06);
+  background: var(--hover-bg-strong);
   border-color: var(--border-medium);
 }
 .status-dot {
@@ -345,9 +471,9 @@ body {
 .status-dot.offline { background: #ef4444; box-shadow: 0 0 6px rgba(239,68,68,0.5); }
 .table-toolbar { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
 .match-result { font-size: 0.85rem; }
-.form-text, .text-secondary { color: rgba(255,255,255,0.4) !important; }
+.form-text, .text-secondary { color: var(--text-secondary) !important; }
 code {
-  background: rgba(255,255,255,0.06);
+  background: var(--hover-bg-strong);
   padding: 0.15em 0.4em;
   border-radius: var(--radius-sm);
   font-size: 0.85em;
@@ -361,14 +487,77 @@ code {
 /* Custom Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: var(--radius-pill); }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: var(--radius-pill); }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
 
 /* Responsive */
+/* ===== File Manager ===== */
+.filemgr-pane {
+  max-height: calc(100vh - 300px);
+  overflow-y: auto;
+}
+.filemgr-folder-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background 0.15s;
+  user-select: none;
+}
+.filemgr-folder-header:hover { background: var(--hover-bg); }
+.filemgr-folder-header .folder-name { font-weight: 600; font-size: 0.88rem; }
+.filemgr-folder-body { border-bottom: 1px solid var(--border-subtle); }
+.filemgr-file-item {
+  display: flex; align-items: center;
+  padding: 0.4rem 1rem 0.4rem 2rem;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.85rem;
+  transition: background 0.15s;
+  gap: 0.5rem;
+}
+.filemgr-file-item:hover { background: var(--hover-bg); }
+.filemgr-file-item:last-child { border-bottom: none; }
+.filemgr-file-item .file-name {
+  flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  min-width: 0;
+}
+.filemgr-file-item .file-version {
+  flex-shrink: 0; font-size: 0.72rem; color: var(--text-secondary);
+}
+.filemgr-file-item .file-actions { flex-shrink: 0; }
+.filemgr-file-item .file-actions .btn {
+  padding: 0.1rem 0.45rem; font-size: 0.7rem;
+}
+.filemgr-output-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.85rem;
+  transition: background 0.15s;
+}
+.filemgr-output-item:hover { background: var(--hover-bg); }
+.filemgr-output-item:last-child { border-bottom: none; }
+.filemgr-output-item .output-info { flex: 1; overflow: hidden; min-width: 0; }
+.filemgr-output-item .output-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.filemgr-output-item .output-meta { font-size: 0.72rem; color: var(--text-secondary); }
+.filemgr-folder-actions { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+.filemgr-folder-actions .btn { padding: 0.1rem 0.5rem; font-size: 0.72rem; }
+.upload-zone-sm {
+  border: 2px dashed var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 0.6rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--hover-bg);
+  font-size: 0.85rem;
+}
+.upload-zone-sm:hover, .upload-zone-sm.dragover {
+  border-color: rgba(99,102,241,0.4);
+  background: var(--glow-accent);
+}
 @media (max-width: 768px) {
-  .sidebar { width: 100%; position: relative; min-height: auto; }
-  .main-content { margin-left: 0; width: 100%; padding: 1rem; }
-  .wrapper { flex-direction: column; }
+  .filemgr-pane { max-height: 50vh; }
 }
 </style>
 </head>
@@ -380,6 +569,11 @@ code {
     <div class="sidebar-header">
       <h5><i class="bi bi-box-seam-fill"></i> IOS_Plugin</h5>
       <small>iOS 插件管理工具</small>
+      <div class="theme-toggle">
+        <button class="theme-btn" data-theme="light" onclick="setTheme('light')"><i class="bi bi-sun-fill"></i> 日间</button>
+        <button class="theme-btn" data-theme="dark" onclick="setTheme('dark')"><i class="bi bi-moon-stars-fill"></i> 夜间</button>
+        <button class="theme-btn" data-theme="auto" onclick="setTheme('auto')"><i class="bi bi-circle-half"></i> 系统</button>
+      </div>
     </div>
     <ul class="nav flex-column mt-2">
       <li class="nav-item">
@@ -399,7 +593,7 @@ code {
       </li>
       <li class="nav-item">
         <a class="nav-link" data-page="webdav" href="#">
-          <i class="bi bi-hdd-network"></i>WebDAV 连接
+          <i class="bi bi-folder2"></i>文件管理器
         </a>
       </li>
       <li class="nav-item">
@@ -418,7 +612,7 @@ code {
         <span class="status-dot" id="serverDot"></span>
         <span id="serverStatusText">检查中...</span>
       </div>
-      <div class="text-break">WebDAV: <span id="webdavUrl">-</span></div>
+      <div class="text-break">文件管理: <span id="webdavUrl">-</span></div>
     </div>
   </nav>
 
@@ -497,14 +691,20 @@ code {
             <div class="card-header"><i class="bi bi-lightning"></i> 快捷操作</div>
             <div class="card-body">
               <div class="d-grid gap-2">
-                <button class="btn btn-primary" onclick="quickCreateFolder()">
-                  <i class="bi bi-folder-plus"></i> 新建日期文件夹
+                <button class="btn btn-outline-secondary text-start d-flex align-items-center gap-3 py-2 px-3" onclick="quickCreateFolder()">
+                  <i class="bi bi-folder-plus fs-5" style="color:#818cf8"></i>
+                  <span class="flex-grow-1 fw-semibold">新建日期文件夹</span>
+                  <i class="bi bi-arrow-right-short fs-5 text-secondary opacity-50"></i>
                 </button>
-                <button class="btn btn-success" onclick="switchPage('folders')">
-                  <i class="bi bi-upload"></i> 上传插件
+                <button class="btn btn-outline-secondary text-start d-flex align-items-center gap-3 py-2 px-3" onclick="switchPage('folders')">
+                  <i class="bi bi-upload fs-5" style="color:#22c55e"></i>
+                  <span class="flex-grow-1 fw-semibold">上传插件</span>
+                  <i class="bi bi-arrow-right-short fs-5 text-secondary opacity-50"></i>
                 </button>
-                <button class="btn btn-info text-white" onclick="rescanOutput()">
-                  <i class="bi bi-arrow-repeat"></i> 重新扫描排序
+                <button class="btn btn-outline-secondary text-start d-flex align-items-center gap-3 py-2 px-3" onclick="rescanOutput()">
+                  <i class="bi bi-arrow-repeat fs-5" style="color:#06b6d4"></i>
+                  <span class="flex-grow-1 fw-semibold">重新扫描排序</span>
+                  <i class="bi bi-arrow-right-short fs-5 text-secondary opacity-50"></i>
                 </button>
               </div>
             </div>
@@ -516,9 +716,9 @@ code {
             <div class="card-body">
               <table class="table table-sm table-borderless mb-0">
                 <tr><td class="text-secondary">Web 界面</td><td><code id="infoWebUrl">-</code></td></tr>
-                <tr><td class="text-secondary">WebDAV</td><td><code id="infoDavUrl">-</code></td></tr>
+                <tr><td class="text-secondary">文件管理</td><td><code id="infoDavUrl">-</code></td></tr>
                 <tr><td class="text-secondary">存储路径</td><td><code id="infoStorage">-</code></td></tr>
-                <tr><td class="text-secondary">WebDAV 目录</td><td><code id="infoDavRoot">-</code></td></tr>
+                <tr><td class="text-secondary">文件目录</td><td><code id="infoDavRoot">-</code></td></tr>
                 <tr><td class="text-secondary">输出目录</td><td><code id="infoOutput">-</code></td></tr>
               </table>
             </div>
@@ -554,7 +754,7 @@ code {
           </div>
           <div class="table-responsive">
             <table class="table table-hover table-sm align-middle">
-              <thead class="table-dark">
+              <thead class="theme-head">
                 <tr>
                   <th style="width:50px">#</th>
                   <th>插件名称</th>
@@ -637,39 +837,67 @@ code {
       </div>
     </section>
 
-    <!-- ==================== WEBDAV CONNECT ==================== -->
+    <!-- ==================== FILE MANAGER ==================== -->
     <section id="page-webdav" class="page-section">
-      <h4 class="mb-4"><i class="bi bi-hdd-network"></i> 文件管理器</h4>
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4><i class="bi bi-folder2"></i> 文件管理器</h4>
+        <button class="btn btn-outline-secondary btn-sm" onclick="loadFileManager()">
+          <i class="bi bi-arrow-clockwise"></i> 刷新
+        </button>
+      </div>
 
-      <div class="row g-3">
-        <div class="col-md-12">
-          <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-              <span><i class="bi bi-plug"></i> 文件管理器地址</span>
-              <span id="filemgrStatus" class="text-secondary small">未连接</span>
+      <!-- Upload Zone -->
+      <div class="card mb-3">
+        <div class="card-body py-3">
+          <div class="row g-2 align-items-center">
+            <div class="col-auto">
+              <select class="form-select form-select-sm" id="fmUploadFolder" style="min-width:140px">
+                <option value="">-- 选择文件夹 --</option>
+              </select>
             </div>
-            <div class="card-body">
-              <div class="input-group mb-2">
-                <input type="text" class="form-control" id="webdavInput"
-                       placeholder="http://192.168.0.104:8088/"
-                       value="http://192.168.0.104:8088/">
-                <button class="btn btn-primary" id="connectBtn" onclick="connectFileManager()">
-                  <i class="bi bi-link-45deg"></i> 连接
-                </button>
+            <div class="col">
+              <div class="upload-zone-sm" id="fmUploadZone"
+                   onclick="document.getElementById('fmFileInput').click()">
+                <i class="bi bi-upload"></i> 拖拽或点击上传 .deb 文件
+                <input type="file" id="fmFileInput" class="d-none" accept=".deb" multiple
+                       onchange="fmUploadFiles(this.files)">
               </div>
             </div>
           </div>
         </div>
-        <div class="col-md-12" id="filemgrFrameWrap" style="display:none">
+      </div>
+
+      <!-- Dual Pane -->
+      <div class="row g-3">
+        <!-- Left: WebDAV Folders -->
+        <div class="col-md-7">
           <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center py-1">
-              <span><i class="bi bi-window"></i> <span id="filemgrTitle">文件管理器</span></span>
-              <button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('filemgrFrame').src = document.getElementById('webdavInput').value.trim()">
-                <i class="bi bi-arrow-clockwise"></i> 刷新
-              </button>
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <span><i class="bi bi-folder2-open"></i> 文件目录</span>
+              <span class="badge bg-secondary" id="fmWebdavCount">0</span>
             </div>
-            <div class="card-body p-0" style="height:70vh">
-              <iframe id="filemgrFrame" src="" style="width:100%;height:100%;border:none;border-radius:0 0 var(--radius-lg) var(--radius-lg)"></iframe>
+            <div class="card-body p-0 filemgr-pane" id="fmWebdavPane">
+              <div class="empty-state"><i class="bi bi-inbox"></i><p>暂无文件夹</p></div>
+            </div>
+          </div>
+        </div>
+        <!-- Right: Output Directory -->
+        <div class="col-md-5">
+          <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <span><i class="bi bi-box-arrow-up"></i> 输出目录</span>
+              <div>
+                <span class="badge bg-info me-1" id="fmOutputCount">0</span>
+                <button class="btn btn-sm btn-outline-primary me-1" onclick="downloadOutputZip()" title="打包为 ZIP">
+                  <i class="bi bi-file-zip"></i> ZIP
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="fmClearOutput()" title="清空输出">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
+            <div class="card-body p-0 filemgr-pane" id="fmOutputPane">
+              <div class="empty-state"><i class="bi bi-inbox"></i><p>暂无输出</p></div>
             </div>
           </div>
         </div>
@@ -683,6 +911,9 @@ code {
         <div>
           <button class="btn btn-outline-info btn-sm me-1" onclick="rescanOutput()">
             <i class="bi bi-arrow-repeat"></i> 重新扫描
+          </button>
+          <button class="btn btn-outline-primary btn-sm me-1" onclick="downloadOutputZip()">
+            <i class="bi bi-file-zip"></i> 打包 ZIP
           </button>
           <button class="btn btn-outline-danger btn-sm" onclick="clearOutput()">
             <i class="bi bi-trash"></i> 清空
@@ -698,7 +929,7 @@ code {
         <div class="card-body p-0">
           <div class="table-responsive">
             <table class="table table-hover table-sm align-middle mb-0">
-              <thead class="table-dark">
+              <thead class="theme-head">
                 <tr>
                   <th>插件名称</th>
                   <th>文件名</th>
@@ -748,7 +979,7 @@ code {
                 <input type="number" class="form-control" id="settingWebPort" min="1024" max="65535">
               </div>
               <div class="mb-3">
-                <label class="form-label">WebDAV 端口</label>
+                <label class="form-label">文件管理端口</label>
                 <input type="number" class="form-control" id="settingWebdavPort" min="1024" max="65535">
               </div>
               <small class="text-secondary">修改端口后需要重启程序生效</small>
@@ -787,9 +1018,10 @@ code {
                 <li>更新插件时自动对比版本，保留最新</li>
               </ol>
               <hr>
-              <button class="btn btn-outline-success btn-sm" onclick="restartServer()">
-                <i class="bi bi-arrow-clockwise"></i> 重启服务
-              </button>
+              <p class="small mb-0">
+                <i class="bi bi-github"></i>
+                <a href="https://github.com/wenqa1/IOS_Plugin" target="_blank" class="text-decoration-none">github.com/wenqa1/IOS_Plugin</a>
+              </p>
             </div>
           </div>
         </div>
@@ -846,6 +1078,49 @@ code {
 
 <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
 <script>
+// ===================== THEME (runs first, no deps) =====================
+function getPreferredTheme() {
+  try {
+    const saved = localStorage.getItem('theme');
+    if (saved) return saved;
+  } catch (e) {}
+  return 'auto';
+}
+
+function applyTheme(theme) {
+  const html = document.documentElement;
+  if (theme === 'auto') {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    html.setAttribute('data-bs-theme', prefersDark ? 'dark' : 'light');
+  } else {
+    html.setAttribute('data-bs-theme', theme);
+  }
+}
+
+function setTheme(theme) {
+  try { localStorage.setItem('theme', theme); } catch (e) {}
+  applyTheme(theme);
+  document.querySelectorAll('.theme-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.theme === theme);
+  });
+}
+
+// Apply theme immediately (DOM is ready since script runs at end of body)
+(function initTheme() {
+  const theme = getPreferredTheme();
+  applyTheme(theme);
+  // Will also activate buttons when DOMContentLoaded fires later
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.theme === theme);
+    });
+  });
+})();
+
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if (getPreferredTheme() === 'auto') applyTheme('auto');
+});
+
 // ===================== STATE =====================
 let state = {
   settings: {},
@@ -856,14 +1131,21 @@ let state = {
 };
 
 // ===================== TOAST =====================
-let toastEl = document.getElementById('toast');
-let toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+let toastEl, toast;
+try {
+  toastEl = document.getElementById('toast');
+  toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+} catch (e) {
+  // Toast unavailable — page still works without it
+}
 
 function showToast(msg, title = '提示', type = 'info') {
   document.getElementById('toastTitle').textContent = title;
   document.getElementById('toastMessage').textContent = msg;
-  toastEl.className = 'toast border-' + type;
-  toast.show();
+  if (toastEl && toast) {
+    toastEl.className = 'toast border-' + type;
+    toast.show();
+  }
 }
 
 // ===================== NAVIGATION =====================
@@ -882,11 +1164,7 @@ function switchPage(page) {
   if (page === 'dashboard') refreshDashboard();
   if (page === 'plugins') loadPlugins();
   if (page === 'folders') loadFolders();
-  if (page === 'webdav') {
-    // Reset status display
-    document.getElementById('filemgrStatus').textContent = '未连接';
-    document.getElementById('filemgrStatus').className = 'text-secondary small';
-  }
+  if (page === 'webdav') loadFileManager();
   if (page === 'output') loadOutput();
   if (page === 'settings') loadSettings();
 }
@@ -1125,7 +1403,7 @@ function renderFolderList() {
   }
   list.innerHTML = state.folders.map(f => `
     <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center ${state.currentFolder === f.name ? 'active' : ''}"
-       onclick="selectFolder('${escHtml(f.name)}')">
+       onclick="selectFolder('${jsStr(f.name)}')">
       <div>
         <i class="bi bi-folder me-2"></i>${escHtml(f.name)}
         <small class="text-secondary ms-2">${f.deb_count} 个文件</small>
@@ -1162,7 +1440,7 @@ function renderFolderFiles(data) {
           <i class="bi bi-upload fs-2"></i>
           <p class="mb-1">点击或拖拽上传 .deb 文件</p>
           <small class="text-secondary">或通过 WebDAV 上传</small>
-          <input type="file" id="fileInput" class="d-none" accept=".deb" multiple onchange="uploadFiles('${escHtml(data.name)}', this.files)">
+          <input type="file" id="fileInput" class="d-none" accept=".deb" multiple onchange="uploadFiles('${jsStr(data.name)}', this.files)">
         </div>
       </div>`;
     setupDragDrop(data.name);
@@ -1172,7 +1450,7 @@ function renderFolderFiles(data) {
   area.innerHTML = `
     <div class="upload-zone mb-3" id="uploadZone" onclick="document.getElementById('fileInput').click()">
       <i class="bi bi-upload"></i> 点击或拖拽上传 .deb 文件
-      <input type="file" id="fileInput" class="d-none" accept=".deb" multiple onchange="uploadFiles('${escHtml(data.name)}', this.files)">
+      <input type="file" id="fileInput" class="d-none" accept=".deb" multiple onchange="uploadFiles('${jsStr(data.name)}', this.files)">
     </div>
     <div class="table-responsive">
       <table class="table table-sm table-hover mb-0">
@@ -1184,7 +1462,7 @@ function renderFolderFiles(data) {
               <td>${escHtml(f.filename)}</td>
               <td class="version-cell">${hasMatch ? escHtml(f.version || '-') : '<span class="text-warning">未解析</span>'}</td>
               <td>${formatSize(f.size)}</td>
-              <td><button class="btn btn-sm btn-outline-danger" onclick="deleteFile('${escHtml(data.name)}', '${escHtml(f.filename)}')"><i class="bi bi-x"></i></button></td>
+              <td><button class="btn btn-sm btn-outline-danger" onclick="deleteFile('${jsStr(data.name)}', '${jsStr(f.filename)}')"><i class="bi bi-x"></i></button></td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -1296,6 +1574,10 @@ function renderOutput() {
   `).join('');
 }
 
+function downloadOutputZip() {
+  window.open('/api/output/zip', '_blank');
+}
+
 async function clearOutput() {
   if (!confirm('确定清空输出目录?')) return;
   try {
@@ -1306,44 +1588,197 @@ async function clearOutput() {
 }
 
 // ===================== FILE MANAGER =====================
-async function connectFileManager() {
-  const url = document.getElementById('webdavInput').value.trim();
-  const btn = document.getElementById('connectBtn');
-  const status = document.getElementById('filemgrStatus');
-  const frameWrap = document.getElementById('filemgrFrameWrap');
+let fmState = { webdav: [], output: [] };
 
-  if (!url) { showToast('请输入地址', '提示', 'warning'); return; }
-
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 连接中...';
-  status.textContent = '连接中...';
-
+async function loadFileManager() {
   try {
-    const data = await api('/api/webdav-test', {
-      method: 'POST',
-      body: JSON.stringify({ url }),
-    });
-
-    if (data.success) {
-      status.textContent = '已连接';
-      status.className = 'text-success small';
-      document.getElementById('filemgrTitle').textContent = url;
-      document.getElementById('filemgrFrame').src = url;
-      frameWrap.style.display = '';
-      showToast('连接成功', '成功', 'success');
-    } else {
-      status.textContent = '连接失败';
-      status.className = 'text-danger small';
-      showToast('连接失败: ' + (data.error || ''), '错误', 'danger');
-    }
+    const [webdav, output] = await Promise.all([
+      api('/api/webdav-files'),
+      api('/api/output'),
+    ]);
+    fmState.webdav = webdav;
+    fmState.output = output;
+    renderFileManager();
   } catch (e) {
-    status.textContent = '连接失败';
-    status.className = 'text-danger small';
-    showToast('连接失败: ' + e.message, '错误', 'danger');
+    if (e.message) showToast('加载文件管理器失败', '错误', 'danger');
+  }
+}
+
+function renderFileManager() {
+  renderWebdavPane();
+  renderOutputPane();
+  updateUploadFolderSelect();
+}
+
+function renderWebdavPane() {
+  const pane = document.getElementById('fmWebdavPane');
+  document.getElementById('fmWebdavCount').textContent = fmState.webdav.length;
+
+  if (!fmState.webdav.length) {
+    pane.innerHTML = '<div class="empty-state"><i class="bi bi-inbox"></i><p>暂无文件夹</p></div>';
+    return;
   }
 
-  btn.disabled = false;
-  btn.innerHTML = '<i class="bi bi-link-45deg"></i> 连接';
+  pane.innerHTML = fmState.webdav.map(folder => {
+    const fid = 'fmfd-' + escHtml(folder.folder).replace(/\s/g, '_');
+    const expanded = fmState['_exp_' + folder.folder] !== false;
+    return `
+      <div class="filemgr-folder-group">
+        <div class="filemgr-folder-header" onclick="toggleFmFolder('${jsStr(folder.folder)}')">
+          <div>
+            <i class="bi ${expanded ? 'bi-chevron-down' : 'bi-chevron-right'} me-1"></i>
+            <i class="bi bi-folder me-1"></i>
+            <span class="folder-name">${escHtml(folder.folder)}</span>
+            <span class="badge bg-secondary ms-1" style="font-size:0.65rem">${folder.file_count}</span>
+          </div>
+          <div class="filemgr-folder-actions">
+            <button class="btn btn-sm btn-success" onclick="event.stopPropagation(); sortFolderToOutput('${jsStr(folder.folder)}')" title="排序到输出目录">
+              <i class="bi bi-sort-up"></i> 排序
+            </button>
+          </div>
+        </div>
+        <div class="filemgr-folder-body" id="${fid}" style="display:${expanded ? '' : 'none'}">
+          ${folder.files.map(f => `
+            <div class="filemgr-file-item">
+              <i class="bi bi-file-earmark-binary me-1 opacity-50" style="flex-shrink:0"></i>
+              <span class="file-name" title="${escHtml(f.filename)}">${escHtml(f.filename)}</span>
+              <span class="file-version">${escHtml(f.version || '-')}</span>
+              <span class="file-actions">
+                <button class="btn btn-outline-primary" onclick="event.stopPropagation(); downloadFile('${jsStr(folder.folder)}', '${jsStr(f.filename)}')" title="下载">
+                  <i class="bi bi-download"></i>
+                </button>
+                <button class="btn btn-outline-secondary" onclick="event.stopPropagation(); renameFile('${jsStr(folder.folder)}', '${jsStr(f.filename)}')" title="重命名">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-outline-danger" onclick="event.stopPropagation(); deleteWebdavFile('${jsStr(folder.folder)}', '${jsStr(f.filename)}')" title="删除">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderOutputPane() {
+  const pane = document.getElementById('fmOutputPane');
+  document.getElementById('fmOutputCount').textContent = fmState.output.length;
+
+  if (!fmState.output.length) {
+    pane.innerHTML = '<div class="empty-state"><i class="bi bi-inbox"></i><p>暂无输出</p></div>';
+    return;
+  }
+
+  pane.innerHTML = fmState.output.map(p => `
+    <div class="filemgr-output-item">
+      <div class="output-info">
+        <div class="output-name">${escHtml(p.plugin_name)}</div>
+        <div class="output-meta">
+          ${escHtml(p.filename)} · <span class="badge bg-info" style="font-size:0.65rem">${escHtml(p.version || '-')}</span> · ${formatSize(p.size)}
+        </div>
+      </div>
+      <button class="btn btn-sm btn-outline-danger ms-2" onclick="deleteOutputFile('${jsStr(p.filename)}')" title="删除">
+        <i class="bi bi-trash"></i>
+      </button>
+    </div>
+  `).join('');
+}
+
+function updateUploadFolderSelect() {
+  const sel = document.getElementById('fmUploadFolder');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">-- 选择文件夹 --</option>' +
+    fmState.webdav.map(f => `<option value="${escHtml(f.folder)}">${escHtml(f.folder)} (${f.file_count})</option>`).join('');
+  if (cur && [...sel.options].some(o => o.value === cur)) sel.value = cur;
+}
+
+function toggleFmFolder(name) {
+  const key = '_exp_' + name;
+  fmState[key] = !(fmState[key] !== false);
+  renderFileManager();
+}
+
+async function downloadFile(folder, filename) {
+  window.open(`/api/webdav/download/${encodeURIComponent(folder)}/${encodeURIComponent(filename)}`, '_blank');
+}
+
+async function renameFile(folder, filename) {
+  const newName = prompt('输入新文件名:', filename);
+  if (!newName || newName === filename) return;
+  if (!newName.toLowerCase().endsWith('.deb')) {
+    showToast('文件名必须以 .deb 结尾', '错误', 'warning');
+    return;
+  }
+  try {
+    await api(`/api/webdav/rename/${encodeURIComponent(folder)}/${encodeURIComponent(filename)}`, {
+      method: 'POST',
+      body: JSON.stringify({ new_filename: newName }),
+    });
+    showToast('重命名成功', '成功', 'success');
+    loadFileManager();
+  } catch (e) { if (e.message) showToast(e.message, '错误', 'danger'); }
+}
+
+async function deleteWebdavFile(folder, filename) {
+  if (!confirm(`确定删除 "${filename}"?`)) return;
+  try {
+    await api(`/api/folders/${encodeURIComponent(folder)}/files/${encodeURIComponent(filename)}`, { method: 'DELETE' });
+    showToast('文件已删除', '成功', 'success');
+    loadFileManager();
+  } catch (e) { if (e.message) showToast(e.message, '错误', 'danger'); }
+}
+
+async function sortFolderToOutput(folderName) {
+  try {
+    const data = await api(`/api/folders/${encodeURIComponent(folderName)}/sort`, { method: 'POST' });
+    let msg = `排序完成: ${data.sorted_count} 个匹配`;
+    if (data.updated_count > 0) msg += `，${data.updated_count} 个更新`;
+    if (data.unmatched_count > 0) msg += `，${data.unmatched_count} 个未匹配`;
+    showToast(msg, '排序完成', 'success');
+    loadFileManager();
+  } catch (e) { if (e.message) showToast(e.message, '错误', 'danger'); }
+}
+
+async function deleteOutputFile(filename) {
+  if (!confirm(`确定删除 "${filename}"?`)) return;
+  try {
+    await api(`/api/output/files/${encodeURIComponent(filename)}`, { method: 'DELETE' });
+    showToast('文件已删除', '成功', 'success');
+    loadFileManager();
+  } catch (e) { if (e.message) showToast(e.message, '错误', 'danger'); }
+}
+
+async function fmClearOutput() {
+  if (!confirm('确定清空输出目录?')) return;
+  try {
+    await api('/api/output/clear', { method: 'POST' });
+    showToast('输出目录已清空', '成功', 'success');
+    loadFileManager();
+  } catch (e) { if (e.message) showToast(e.message, '错误', 'danger'); }
+}
+
+async function fmUploadFiles(files) {
+  const sel = document.getElementById('fmUploadFolder');
+  const folderName = sel.value;
+  if (!folderName) { showToast('请先选择目标文件夹', '提示', 'warning'); return; }
+
+  for (const file of files) {
+    if (!file.name.toLowerCase().endsWith('.deb')) {
+      showToast('跳过非 deb 文件: ' + file.name, '提示', 'warning');
+      continue;
+    }
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      await apiForm(`/api/upload/${encodeURIComponent(folderName)}`, formData);
+      showToast('已上传: ' + file.name, '成功', 'success');
+    } catch (e) {
+      showToast('上传失败: ' + file.name, '错误', 'danger');
+    }
+  }
+  loadFileManager();
 }
 
 // ===================== SETTINGS =====================
@@ -1379,18 +1814,18 @@ function resetStoragePath() {
   document.getElementById('settingStoragePath').value = '';
 }
 
-function restartServer() {
-  if (confirm('确定要重启服务器?')) {
-    showToast('正在重启... (此功能当前需手动重启程序)', '提示', 'info');
-  }
-}
-
 // ===================== UTILITIES =====================
 function escHtml(str) {
   if (!str) return '';
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+function jsStr(str) {
+  // Escape string for use in single-quoted JS context (onclick attributes)
+  if (!str) return '';
+  return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '\\r');
 }
 
 function formatSize(bytes) {
@@ -1413,6 +1848,18 @@ document.addEventListener('DOMContentLoaded', () => {
   refreshDashboard();
   loadPlugins();
   loadFolders();
+
+  // File manager upload drag-drop setup
+  const fmZone = document.getElementById('fmUploadZone');
+  if (fmZone) {
+    fmZone.addEventListener('dragover', e => { e.preventDefault(); fmZone.classList.add('dragover'); });
+    fmZone.addEventListener('dragleave', () => fmZone.classList.remove('dragover'));
+    fmZone.addEventListener('drop', e => {
+      e.preventDefault();
+      fmZone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) fmUploadFiles(e.dataTransfer.files);
+    });
+  }
 
   // Auto-refresh dashboard every 30s
   setInterval(() => {

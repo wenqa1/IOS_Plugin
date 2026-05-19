@@ -6,6 +6,7 @@ import logging
 import threading
 from pathlib import Path
 from datetime import datetime
+from urllib.parse import unquote
 
 from flask import (
     Flask, render_template, request, jsonify, send_from_directory,
@@ -105,6 +106,16 @@ def create_app(settings, plugin_table):
         plugin_table._save()
         return jsonify({'success': True, 'plugins': plugin_table.get_all()})
 
+    # ========== Path Safety Helper ==========
+
+    def _safe_folder_path(folder_name):
+        """Resolve a folder name within webdav_root, preventing path traversal."""
+        resolved = (settings.webdav_root / folder_name).resolve()
+        root = settings.webdav_root.resolve()
+        if not str(resolved).startswith(str(root)):
+            return None
+        return resolved
+
     # ========== Folder Management API ==========
 
     @app.route('/api/folders', methods=['GET'])
@@ -116,8 +127,11 @@ def create_app(settings, plugin_table):
     def create_folder():
         data = request.get_json(silent=True) or {}
         name = data.get('name', suggest_folder_name(settings.webdav_root))
-        folder_path = settings.webdav_root / name
-
+        if not name or '..' in name or '/' in name or '\\' in name:
+            return jsonify({'error': 'Invalid folder name'}), 400
+        folder_path = _safe_folder_path(name)
+        if folder_path is None:
+            return jsonify({'error': 'Invalid folder name'}), 400
         if folder_path.exists():
             return jsonify({'error': f'文件夹 "{name}" 已存在'}), 409
 
@@ -134,7 +148,9 @@ def create_app(settings, plugin_table):
 
     @app.route('/api/folders/<folder_name>', methods=['GET'])
     def get_folder(folder_name):
-        folder_path = settings.webdav_root / folder_name
+        folder_path = _safe_folder_path(folder_name)
+        if folder_path is None:
+            return jsonify({'error': 'Invalid folder name'}), 400
         if not folder_path.exists():
             return jsonify({'error': 'Folder not found'}), 404
         files = scan_folder(folder_path)
@@ -147,7 +163,9 @@ def create_app(settings, plugin_table):
     @app.route('/api/folders/<folder_name>/sort', methods=['POST'])
     def sort_folder_route(folder_name):
         """Sort/match plugins in a date folder and copy to output."""
-        folder_path = settings.webdav_root / folder_name
+        folder_path = _safe_folder_path(folder_name)
+        if folder_path is None:
+            return jsonify({'error': 'Invalid folder name'}), 400
         if not folder_path.exists():
             return jsonify({'error': 'Folder not found'}), 404
 
@@ -166,7 +184,11 @@ def create_app(settings, plugin_table):
 
     @app.route('/api/folders/<folder_name>/files/<filename>', methods=['DELETE'])
     def delete_file(folder_name, filename):
-        folder_path = settings.webdav_root / folder_name
+        folder_path = _safe_folder_path(folder_name)
+        if folder_path is None:
+            return jsonify({'error': 'Invalid folder name'}), 400
+        if '/' in filename or '\\' in filename or '..' in filename:
+            return jsonify({'error': 'Invalid filename'}), 400
         file_path = folder_path / filename
         if file_path.exists() and file_path.is_file():
             file_path.unlink()
@@ -175,7 +197,9 @@ def create_app(settings, plugin_table):
 
     @app.route('/api/folders/<folder_name>', methods=['DELETE'])
     def delete_folder(folder_name):
-        folder_path = settings.webdav_root / folder_name
+        folder_path = _safe_folder_path(folder_name)
+        if folder_path is None:
+            return jsonify({'error': 'Invalid folder name'}), 400
         if folder_path.exists():
             import shutil
             shutil.rmtree(str(folder_path))
@@ -187,7 +211,9 @@ def create_app(settings, plugin_table):
     @app.route('/api/upload/<folder_name>', methods=['POST'])
     def upload_file(folder_name):
         """Upload a deb file to a specific folder via web UI."""
-        folder_path = settings.webdav_root / folder_name
+        folder_path = _safe_folder_path(folder_name)
+        if folder_path is None:
+            return jsonify({'error': 'Invalid folder name'}), 400
         if not folder_path.exists():
             return jsonify({'error': 'Folder not found'}), 404
 
@@ -216,7 +242,7 @@ def create_app(settings, plugin_table):
 
     @app.route('/api/output', methods=['GET'])
     def get_output():
-        summary = get_output_summary(settings.output_dir, plugin_table)
+        summary = get_output_summary(settings.output_dir)
         return jsonify(summary)
 
     @app.route('/api/output/clear', methods=['POST'])
@@ -230,6 +256,28 @@ def create_app(settings, plugin_table):
                 else:
                     item.unlink()
         return jsonify({'success': True})
+
+    @app.route('/api/output/zip', methods=['GET'])
+    def download_output_zip():
+        """Download all output files as a ZIP archive."""
+        import io
+        import zipfile
+        from flask import send_file
+
+        output_dir = Path(settings.output_dir)
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
+            if output_dir.exists():
+                for f in sorted(output_dir.iterdir()):
+                    if f.is_file():
+                        zf.write(str(f), arcname=f.name)
+        buf.seek(0)
+        return send_file(
+            buf,
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name=f'output_plugins_{datetime.now().strftime("%m%d")}.zip',
+        )
 
     @app.route('/api/output/rescan', methods=['POST'])
     def rescan_output():
@@ -351,6 +399,62 @@ def create_app(settings, plugin_table):
             return jsonify({'success': True})
         except Exception as e:
             return jsonify({'success': False, 'error': str(e)})
+
+    # ========== File Manager: Download / Rename / Delete ==========
+
+    @app.route('/api/webdav/download/<folder_name>/<path:filename>', methods=['GET'])
+    def webdav_download(folder_name, filename):
+        """Download a file from a WebDAV folder."""
+        folder_name = unquote(folder_name)
+        filename = unquote(filename)
+        folder_path = (settings.webdav_root / folder_name).resolve()
+        root = settings.webdav_root.resolve()
+        if not str(folder_path).startswith(str(root)):
+            return jsonify({'error': 'Invalid path'}), 400
+        if not folder_path.exists() or not folder_path.is_dir():
+            return jsonify({'error': 'Folder not found'}), 404
+        return send_from_directory(str(folder_path), filename, as_attachment=True)
+
+    @app.route('/api/webdav/rename/<folder_name>/<path:filename>', methods=['POST'])
+    def webdav_rename(folder_name, filename):
+        """Rename a file in a WebDAV folder."""
+        folder_name = unquote(folder_name)
+        filename = unquote(filename)
+        data = request.get_json()
+        if not data or not data.get('new_filename'):
+            return jsonify({'error': 'new_filename required'}), 400
+
+        new_fn = data['new_filename']
+        if '/' in new_fn or '\\' in new_fn:
+            return jsonify({'error': 'Invalid filename'}), 400
+
+        folder_path = (settings.webdav_root / folder_name).resolve()
+        root = settings.webdav_root.resolve()
+        if not str(folder_path).startswith(str(root)):
+            return jsonify({'error': 'Invalid path'}), 400
+
+        src = folder_path / filename
+        dst = folder_path / new_fn
+        if not src.exists():
+            return jsonify({'error': 'File not found'}), 404
+        if dst.exists():
+            return jsonify({'error': '目标文件已存在'}), 409
+
+        src.rename(dst)
+        return jsonify({'success': True, 'new_filename': new_fn})
+
+    @app.route('/api/output/files/<path:filename>', methods=['DELETE'])
+    def delete_output_file(filename):
+        """Delete a single file from the output directory."""
+        filename = unquote(filename)
+        output_dir = Path(settings.output_dir).resolve()
+        file_path = (output_dir / filename).resolve()
+        if not str(file_path).startswith(str(output_dir)):
+            return jsonify({'error': 'Invalid path'}), 400
+        if not file_path.exists() or not file_path.is_file():
+            return jsonify({'error': 'File not found'}), 404
+        file_path.unlink()
+        return jsonify({'success': True})
 
     # ========== Error Handlers ==========
 

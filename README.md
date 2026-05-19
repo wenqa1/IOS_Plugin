@@ -1,14 +1,15 @@
 # IOS_Plugin - iOS 插件管理工具
 
-通过 WebDAV 快捷传输和管理 iOS 插件（`.deb`），支持自动识别、版本比对、分类归档，提供可视化操作面板。
+通过 Web 面板管理 iOS 插件（`.deb`），支持自动识别、版本比对、分类归档，提供可视化操作面板。
 
 ## 功能特点
 
 ### 📦 插件表管理
 - 管理插件识别库：**插件名称**、**关键词**、**备注**
 - 支持增删改查，关键词用于文件名模糊匹配
-- 内置 10 个常用插件（Apple File Conduit 2、Filza、iCleaner Pro 等）
+- 内置 20+ 个常用插件（插件管理、微信助手、WCRefine、黄白助手 等）
 - 可重置为默认列表
+- 文件名匹配测试工具
 
 ### 🔍 智能匹配排序
 - 多策略文件名匹配（包名 → 名称 → 关键词 → 模糊匹配）
@@ -21,21 +22,31 @@
 - 支持 `~`（tilde）预发布版本号
 - 更新时自动保留最新版本
 
-### 🌐 WebDAV 协议支持
-- 内置 WebDAV 服务器（端口 5001），支持任意 WebDAV 客户端
-- 手机上可直接通过 WebDAV 访问和上传 deb 文件
-- 页面上也支持拖拽上传
+### 📁 内置双栏文件管理器
+- 左侧 WebDAV 目录树，按文件夹分组可折叠
+- 右侧输出目录面板
+- 每个文件支持：下载、重命名、删除
+- 文件夹一键排序到输出目录
+- 拖拽上传 .deb 文件
+
+
+### 🎨 主题系统
+- 日间模式 / 夜间模式 / 跟随系统
+- 自动跟随操作系统主题切换
+- 主题偏好自动保存（localStorage）
+- 平滑过渡动画
 
 ### 🖥️ Web 管理面板
 - 深色圆角主题，Nunito 字体
-- 5 个功能标签页：仪表盘、插件表、文件夹、输出目录、设置
+- 6 个功能标签页：仪表盘、插件表、文件夹、文件管理器、输出目录、设置
 - 实时仪表盘统计
-- 文件名匹配测试工具
+- 侧栏 WebDAV 地址显示，方便移动端访问
+- 服务器连接状态指示
 
 ### 📁 文件夹管理
 - 自动按日期（MMDD）命名文件夹
 - 文件夹内文件浏览与删除
-- 侧栏 WebDAV 地址显示，方便移动端访问
+- 文件夹上传区域支持拖拽
 
 ### ⚙️ 可自定义存储
 - 可自定义 WebDAV 和输出目录的存储路径
@@ -92,13 +103,22 @@ python build_exe.py
 ### 基本工作流
 
 ```
-上传 deb → 日期文件夹 → 排序匹配 → 输出目录（按插件归档）
+日期文件夹 → 上传 deb → 排序匹配 → 输出目录（按插件归档）
 ```
 
 1. **新建文件夹** — 在「文件夹」页新建日期文件夹（自动以 MMDD 命名）
 2. **上传 deb** — 通过 WebDAV（手机端）或页面拖拽上传 deb 文件
 3. **排序匹配** — 点击「排序匹配」，系统自动识别插件并归档到 output 目录
 4. **查看结果** — 在「输出目录」页查看已分类的插件
+
+### 文件管理器使用
+
+在「文件管理器」标签页中：
+
+- **左栏**：浏览 WebDAV 目录，展开/折叠文件夹，对单个文件进行下载/重命名/删除
+- **右栏**：浏览已排序的输出文件，可单个删除或一键清空
+- **顶部**：选择目标文件夹后拖拽或点击上传 .deb 文件
+- **排序**：点击文件夹旁的「排序」按钮，自动匹配并输出到右栏
 
 ### 插件表配置
 
@@ -127,6 +147,7 @@ IOS_Plugin/
 ├── main.py                 # 入口，启动 Flask + WebDAV
 ├── build_exe.py            # PyInstaller 打包脚本
 ├── requirements.txt        # 依赖
+├── IP.txt                  # 网络配置（可选）
 ├── app/
 │   ├── __init__.py
 │   ├── config.py           # 设置 & 插件表 JSON 持久化
@@ -134,7 +155,7 @@ IOS_Plugin/
 │   ├── plugin_manager.py   # 核心：匹配、排序、版本比较
 │   └── deb_parser.py       # .deb ar 解析器
 ├── templates/
-│   └── index.html          # SPA 前端（Bootstrap 5 深色主题）
+│   └── index.html          # SPA 前端（Bootstrap 5 深色主题 + 主题系统）
 ├── data/                   # 默认数据目录
 │   ├── settings.json       # 应用设置
 │   ├── plugin_table.json   # 插件表数据
@@ -151,6 +172,7 @@ IOS_Plugin/
 |------|------|------|
 | GET | `/api/settings` | 获取设置 |
 | PUT | `/api/settings` | 更新设置 |
+| GET | `/api/settings/dirs` | 获取数据目录路径 |
 | GET | `/api/plugins` | 获取插件列表 |
 | POST | `/api/plugins` | 添加插件 |
 | PUT | `/api/plugins/:id` | 更新插件 |
@@ -161,12 +183,18 @@ IOS_Plugin/
 | GET | `/api/folders/:name` | 查看文件夹内容 |
 | POST | `/api/folders/:name/sort` | 排序匹配文件夹内插件 |
 | DELETE | `/api/folders/:name` | 删除文件夹 |
-| DELETE | `/api/folders/:name/files/:file` | 删除文件 |
-| POST | `/api/upload/:name` | 上传 deb 文件 |
+| DELETE | `/api/folders/:name/files/:file` | 删除文件夹内文件 |
+| POST | `/api/upload/:name` | 上传 deb 文件到文件夹 |
 | GET | `/api/output` | 获取输出目录概况 |
 | POST | `/api/output/clear` | 清空输出目录 |
-| POST | `/api/output/rescan` | 重新扫描所有文件夹 |
-| POST | `/api/match-test` | 测试文件名匹配 |
+| POST | `/api/output/rescan` | 重新扫描所有文件夹并排序 |
+| DELETE | `/api/output/files/:filename` | 删除输出目录中的单个文件 |
+| GET | `/api/webdav-files` | 获取 WebDAV 文件列表（按文件夹分组） |
+| POST | `/api/webdav-open` | 在资源管理器中打开 WebDAV 目录 |
+| POST | `/api/webdav-test` | 测试 WebDAV 连接 |
+| GET | `/api/webdav/download/:folder/:file` | 下载 WebDAV 文件 |
+| POST | `/api/webdav/rename/:folder/:file` | 重命名 WebDAV 文件 |
+| POST | `/api/match-test` | 测试文件名与插件表匹配 |
 | GET | `/api/info` | 服务器信息 |
 
 ---
@@ -176,6 +204,7 @@ IOS_Plugin/
 - **后端**: Python 3, Flask, Waitress
 - **WebDAV**: wsgidav, Cheroot
 - **前端**: Bootstrap 5.3 (Dark), Bootstrap Icons, Nunito 字体
+- **主题**: CSS 自定义属性 + `data-bs-theme` 属性切换，支持日间/夜间/跟随系统
 - **打包**: PyInstaller
 - **版本算法**: 自实现 Debian 版本比较
 - **解析器**: 自实现 ar 归档解析（.deb 格式）

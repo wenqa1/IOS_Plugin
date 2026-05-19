@@ -89,7 +89,7 @@ def parse_deb(filepath):
     try:
         members = _read_ar_members(filepath)
     except (ArArchiveError, OSError) as e:
-        logger.warning('Failed to read ar archive %s: %s', filepath, e)
+        logger.debug('Failed to read ar archive %s: %s', filepath, e)
         return None
 
     # Find control.tar member (may be .gz, .xz, .zst, or uncompressed)
@@ -100,7 +100,7 @@ def parse_deb(filepath):
             break
 
     if control_data is None:
-        logger.warning('No control.tar found in %s', filepath)
+        logger.debug('No control.tar found in %s', filepath)
         return None
 
     # Try to extract the 'control' file from the tar
@@ -132,6 +132,6 @@ def parse_deb(filepath):
                         return _parse_control_text(text)
 
     except Exception as e:
-        logger.warning('Failed to extract control from %s: %s', filepath, e)
+        logger.debug('Failed to extract control from %s: %s', filepath, e)
 
     return None

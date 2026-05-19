@@ -93,12 +93,12 @@ def _compare_upstream(v1, v2):
     max_len = max(len(p1), len(p2))
     for i in range(max_len):
         if i >= len(p1):
-            # v1 is shorter - check if v2 has only tildes left
-            remaining = all(t[0] == 'tilde' for t in p2[i:])
-            return 1 if not remaining else 1  # v1 < v2 if v2 has non-tilde
+            # v1 exhausted — check v2's next part
+            # tilde sorts before end-of-string (pre-release), anything else after
+            return 1 if p2[i][0] == 'tilde' else -1
         if i >= len(p2):
-            remaining = all(t[0] == 'tilde' for t in p1[i:])
-            return -1 if not remaining else -1
+            # v2 exhausted — check v1's next part
+            return -1 if p1[i][0] == 'tilde' else 1
 
         t1, s1 = p1[i]
         t2, s2 = p2[i]
@@ -426,7 +426,7 @@ def _find_existing_deb(output_dir, control, plugin_name):
     return None
 
 
-def get_output_summary(output_dir, plugin_table=None):
+def get_output_summary(output_dir):
     """Get a summary of all sorted plugins in the output directory.
 
     Reads flat .deb files directly from output_dir (no subdirectories).

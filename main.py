@@ -9,7 +9,7 @@
   - 可自定义存储位置
 
 启动方式：
-  python main.py [--port PORT] [--webdav-port PORT]
+  python main.py [--port PORT] [--webdav-host HOST] [--webdav-port PORT]
 """
 
 import sys
@@ -169,10 +169,11 @@ def main():
     print('\n' + '=' * 55)
     print('  IOS_Plugin - iOS插件管理工具')
     print('=' * 55)
-    print(f'  Web UI:     http://{web_host}:{web_port}')
+    print(f'  Web UI:     http://localhost:{web_port}')
     print(f'  WebDAV:     http://{webdav_host}:{webdav_port}')
     print(f'  局域网 Web: http://{hostname}:{web_port}')
     print(f'  局域网 DAV: http://{hostname}:{webdav_port}')
+    print(f'  WebDAV 绑定: {webdav_host}:{webdav_port}')
     print(f'  存储路径:   {settings.storage_path}')
     print(f'  数据目录:   {data_dir}')
     print('=' * 55)
