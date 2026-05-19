@@ -208,3 +208,4 @@ IOS_Plugin/
 - **打包**: PyInstaller
 - **版本算法**: 自实现 Debian 版本比较
 - **解析器**: 自实现 ar 归档解析（.deb 格式）
+- **辅助AI**: deepseek-v4-flash
