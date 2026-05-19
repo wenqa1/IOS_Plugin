@@ -1,0 +1,10 @@
+# IOS_Plugin 网络配置
+# 取消注释并修改对应值即可生效
+
+# Web 管理面板
+# WEB_HOST=0.0.0.0
+# WEB_PORT=5099
+
+# WebDAV 服务
+ WEBDAV_HOST=0.0.0.104
+ WEBDAV_PORT=8089

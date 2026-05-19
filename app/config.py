@@ -7,8 +7,10 @@ from pathlib import Path
 
 DEFAULT_SETTINGS = {
     "storage_path": "",
+    "web_host": "0.0.0.0",
+    "web_port": 5099,
+    "webdav_host": "0.0.0.0",
     "webdav_port": 5001,
-    "web_port": 5000,
     "auto_sort": True,
     "poll_interval": 10,
     "fuzzy_match_threshold": 0.6,

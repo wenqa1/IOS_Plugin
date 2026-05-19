@@ -1,7 +1,9 @@
 {
   "storage_path": "",
-  "webdav_port": 5001,
+  "web_host": "0.0.0.0",
   "web_port": 5099,
+  "webdav_host": "0.0.0.104",
+  "webdav_port": 8089,
   "auto_sort": true,
   "poll_interval": 10,
   "fuzzy_match_threshold": 0.6

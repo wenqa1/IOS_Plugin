@@ -15,7 +15,7 @@ from flask import (
 from .config import Settings, PluginTable
 from .plugin_manager import (
     sort_folder, scan_folder, get_output_summary, get_date_folders,
-    suggest_folder_name, match_plugin, parse_deb,
+    suggest_folder_name, match_plugin, parse_deb, scan_webdav_files,
 )
 
 logger = logging.getLogger(__name__)
@@ -115,7 +115,7 @@ def create_app(settings, plugin_table):
     @app.route('/api/folders', methods=['POST'])
     def create_folder():
         data = request.get_json(silent=True) or {}
-        name = data.get('name', suggest_folder_name())
+        name = data.get('name', suggest_folder_name(settings.webdav_root))
         folder_path = settings.webdav_root / name
 
         if folder_path.exists():
@@ -270,14 +270,87 @@ def create_app(settings, plugin_table):
 
     @app.route('/api/info', methods=['GET'])
     def server_info():
+        webdav_host = settings.get('webdav_host', '0.0.0.0')
+        web_host = settings.get('web_host', '0.0.0.0')
         return jsonify({
             'webdav_port': settings.get('webdav_port', 5001),
-            'web_port': settings.get('web_port', 5000),
+            'web_port': settings.get('web_port', 5099),
+            'web_host': web_host,
+            'webdav_host': webdav_host,
             'storage_path': str(settings.storage_path),
             'webdav_root': str(settings.webdav_root),
             'output_dir': str(settings.output_dir),
             'hostname': os.environ.get('COMPUTERNAME', 'localhost'),
         })
+
+    # ========== WebDAV Connection Test ==========
+
+    @app.route('/api/webdav-test', methods=['POST'])
+    def webdav_test():
+        """Test connectivity to a WebDAV URL from the server side."""
+        data = request.get_json(silent=True) or {}
+        url = data.get('url', '').rstrip('/')
+        if not url:
+            return jsonify({'success': False, 'error': 'URL is required'}), 400
+
+        import urllib.request
+        import urllib.error
+        import socket
+
+        # Bypass system proxy to test the actual endpoint directly
+        proxy_handler = urllib.request.ProxyHandler({})
+        opener = urllib.request.build_opener(proxy_handler)
+
+        try:
+            req = urllib.request.Request(url, method='OPTIONS')
+            resp = opener.open(req, timeout=5)
+            return jsonify({
+                'success': True,
+                'status': resp.status,
+                'url': url,
+            })
+        except urllib.error.HTTPError as e:
+            # WebDAV may return 401/403/405 on OPTIONS — still reachable
+            return jsonify({
+                'success': True,
+                'status': e.code,
+                'url': url,
+                'note': 'Server reachable (HTTP ' + str(e.code) + ')',
+            })
+        except (urllib.error.URLError, socket.timeout, ConnectionRefusedError,
+                ConnectionResetError, ConnectionAbortedError, ConnectionError,
+                OSError) as e:
+            reason = '连接超时' if isinstance(e, socket.timeout) else str(e)
+            return jsonify({
+                'success': False,
+                'error': reason,
+                'url': url,
+            })
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': str(e),
+                'url': url,
+            })
+
+    # ========== WebDAV File Browser ==========
+
+    @app.route('/api/webdav-files', methods=['GET'])
+    def get_webdav_files():
+        """List all files in the WebDAV root, grouped by folder."""
+        items = scan_webdav_files(settings.webdav_root)
+        return jsonify(items)
+
+    @app.route('/api/webdav-open', methods=['POST'])
+    def webdav_open():
+        """Open the WebDAV root folder in Windows Explorer."""
+        import subprocess
+        folder = str(settings.webdav_root)
+        try:
+            subprocess.Popen(['explorer', folder])
+            return jsonify({'success': True})
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)})
 
     # ========== Error Handlers ==========
 

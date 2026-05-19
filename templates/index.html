@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DebManager - iOS越狱插件管理</title>
+<title>IOS_Plugin - iOS 插件管理工具</title>
 <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 <link href="https://fonts.loli.net/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -378,8 +378,8 @@ code {
   <!-- Sidebar -->
   <nav class="sidebar">
     <div class="sidebar-header">
-      <h5><i class="bi bi-box-seam-fill"></i> DebManager</h5>
-      <small>iOS 越狱插件管理</small>
+      <h5><i class="bi bi-box-seam-fill"></i> IOS_Plugin</h5>
+      <small>iOS 插件管理工具</small>
     </div>
     <ul class="nav flex-column mt-2">
       <li class="nav-item">
@@ -395,6 +395,11 @@ code {
       <li class="nav-item">
         <a class="nav-link" data-page="folders" href="#">
           <i class="bi bi-folder2-open"></i>文件夹
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-page="webdav" href="#">
+          <i class="bi bi-hdd-network"></i>WebDAV 连接
         </a>
       </li>
       <li class="nav-item">
@@ -632,6 +637,44 @@ code {
       </div>
     </section>
 
+    <!-- ==================== WEBDAV CONNECT ==================== -->
+    <section id="page-webdav" class="page-section">
+      <h4 class="mb-4"><i class="bi bi-hdd-network"></i> WebDAV 连接</h4>
+
+      <div class="row g-3">
+        <div class="col-md-7">
+          <div class="card">
+            <div class="card-header"><i class="bi bi-plug"></i> 自定义网络位置</div>
+            <div class="card-body">
+              <div class="mb-3">
+                <label class="form-label">WebDAV 地址</label>
+                <div class="input-group">
+                  <input type="text" class="form-control" id="webdavInput"
+                         placeholder="http://192.168.1.100:5001"
+                         value="http://localhost:5001">
+                  <button class="btn btn-primary" onclick="connectWebdav()">
+                    <i class="bi bi-link-45deg"></i> 连接
+                  </button>
+                </div>
+                <small class="text-secondary">输入 WebDAV 服务器地址，点击连接测试</small>
+              </div>
+              <div id="webdavConnectResult"></div>
+            </div>
+          </div>
+          <div class="card mt-3">
+            <div class="card-header"><i class="bi bi-info-circle"></i> 连接说明</div>
+            <div class="card-body small">
+              <ul class="mb-0">
+                <li>本机 WebDAV 地址为 <code id="davLocalUrl">加载中...</code></li>
+                <li>连接成功后可复制地址到 Windows 「添加网络位置」映射为网络驱动器</li>
+                <li>连接失败请检查地址是否正确、服务是否启动、防火墙是否放行端口</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ==================== OUTPUT ==================== -->
     <section id="page-output" class="page-section">
       <div class="d-flex justify-content-between align-items-center mb-4">
@@ -734,7 +777,7 @@ code {
           <div class="card">
             <div class="card-header"><i class="bi bi-info-lg"></i> 关于</div>
             <div class="card-body">
-              <p>DebManager v1.0 - iOS 越狱插件管理工具</p>
+              <p>IOS_Plugin v1.0 - iOS 插件管理工具</p>
               <p class="mb-1"><strong>使用流程:</strong></p>
               <ol class="small">
                 <li>在「文件夹」中新建日期文件夹 (如 0520)</li>
@@ -838,6 +881,13 @@ function switchPage(page) {
   if (page === 'dashboard') refreshDashboard();
   if (page === 'plugins') loadPlugins();
   if (page === 'folders') loadFolders();
+  if (page === 'webdav') {
+    // Show local WebDAV URL for reference
+    api('/api/info').then(info => {
+      document.getElementById('davLocalUrl').textContent = `http://localhost:${info.webdav_port}`;
+      document.getElementById('webdavInput').placeholder = `http://${info.hostname}:${info.webdav_port}`;
+    }).catch(() => {});
+  }
   if (page === 'output') loadOutput();
   if (page === 'settings') loadSettings();
 }
@@ -866,7 +916,7 @@ function apiForm(url, formData) {
 }
 
 // ===================== SERVER STATUS =====================
-function updateServerStatus(online) {
+function updateServerStatus(online, hostname) {
   const dot = document.getElementById('serverDot');
   const text = document.getElementById('serverStatusText');
   dot.className = 'status-dot ' + (online ? 'online' : 'offline');
@@ -876,32 +926,40 @@ function updateServerStatus(online) {
 // ===================== DASHBOARD =====================
 async function refreshDashboard() {
   try {
-    const [info, plugins, folders, output] = await Promise.all([
-      api('/api/info'),
-      api('/api/plugins'),
-      api('/api/folders'),
-      api('/api/output'),
-    ]);
+    const info = await api('/api/info');
 
-    document.getElementById('infoWebUrl').textContent = `http://localhost:${info.web_port}`;
-    document.getElementById('infoDavUrl').textContent = `http://localhost:${info.webdav_port}`;
+    // Build display URLs based on configured hosts
+    const webHost = info.web_host && info.web_host !== '0.0.0.0' ? info.web_host : 'localhost';
+    const davHost = info.webdav_host && info.webdav_host !== '0.0.0.0' ? info.webdav_host : info.hostname;
+
+    document.getElementById('infoWebUrl').textContent = `http://${webHost}:${info.web_port}`;
+    document.getElementById('infoDavUrl').textContent = `http://${davHost}:${info.webdav_port}`;
     document.getElementById('infoStorage').textContent = info.storage_path;
     document.getElementById('infoDavRoot').textContent = info.webdav_root;
     document.getElementById('infoOutput').textContent = info.output_dir;
-    document.getElementById('webdavUrl').textContent = `http://${info.hostname}:${info.webdav_port}`;
+    document.getElementById('webdavUrl').textContent = `http://${davHost}:${info.webdav_port}`;
 
-    // Compute unmatched: folders total - output total
-    let totalDebs = 0;
-    for (const f of folders) totalDebs += f.deb_count;
+    // Load stats individually so a single failure doesn't break the dashboard
+    try {
+      const plugins = await api('/api/plugins');
+      document.getElementById('statPlugins').textContent = plugins.length;
+    } catch (e) {}
 
-    document.getElementById('statPlugins').textContent = plugins.length;
-    document.getElementById('statFolders').textContent = folders.length;
-    document.getElementById('statSorted').textContent = output.length;
-    document.getElementById('statUnmatched').textContent = Math.max(0, totalDebs - output.length);
+    try {
+      const folders = await api('/api/folders');
+      document.getElementById('statFolders').textContent = folders.length;
+      let totalDebs = 0;
+      for (const f of folders) totalDebs += f.deb_count;
+      try {
+        const output = await api('/api/output');
+        document.getElementById('statSorted').textContent = output.length;
+        document.getElementById('statUnmatched').textContent = Math.max(0, totalDebs - output.length);
+      } catch (e) {}
+    } catch (e) {}
 
     updateServerStatus(true);
   } catch (e) {
-    // already handled by api()
+    // info API failed — server might be down, api() helper handles status
   }
 }
 
@@ -1248,12 +1306,64 @@ async function clearOutput() {
   } catch (e) { if (e.message) showToast(e.message, '错误', 'danger'); }
 }
 
+// ===================== WEBDAV CONNECT =====================
+async function connectWebdav() {
+  const url = document.getElementById('webdavInput').value.trim();
+  const resultDiv = document.getElementById('webdavConnectResult');
+  if (!url) {
+    resultDiv.innerHTML = '<div class="alert alert-warning mb-0"><i class="bi bi-exclamation-triangle"></i> 请输入 WebDAV 地址</div>';
+    return;
+  }
+
+  resultDiv.innerHTML = '<div class="text-center py-2"><div class="spinner-border spinner-border-sm"></div> 正在连接...</div>';
+
+  try {
+    const data = await api('/api/webdav-test', {
+      method: 'POST',
+      body: JSON.stringify({ url }),
+    });
+    if (data.success) {
+      resultDiv.innerHTML = `<div class="alert alert-success mb-0">
+        <i class="bi bi-check-circle"></i> 连接成功!
+        <br><small>地址: <code>${escHtml(url)}</code></small>
+        <br><small class="text-secondary">可复制此地址在 Windows 「添加网络位置」中映射为网络驱动器</small>
+      </div>`;
+    } else {
+      resultDiv.innerHTML = `<div class="alert alert-danger mb-0">
+        <i class="bi bi-x-circle"></i> 连接失败
+        <br><small>${escHtml(data.error || '未知错误')}</small>
+      </div>`;
+    }
+  } catch (e) {
+    resultDiv.innerHTML = `<div class="alert alert-danger mb-0">
+      <i class="bi bi-x-circle"></i> 连接失败
+      <br><small>${escHtml(e.message)}</small>
+    </div>`;
+  }
+}
+
+function copyText(el) {
+  const text = el.textContent || el.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('已复制到剪贴板', '成功', 'success');
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('已复制到剪贴板', '成功', 'success');
+  });
+}
+
 // ===================== SETTINGS =====================
 async function loadSettings() {
   try {
     state.settings = await api('/api/settings');
     document.getElementById('settingStoragePath').value = state.settings.storage_path || '';
-    document.getElementById('settingWebPort').value = state.settings.web_port || 5000;
+    document.getElementById('settingWebPort').value = state.settings.web_port || 5099;
     document.getElementById('settingWebdavPort').value = state.settings.webdav_port || 5001;
     document.getElementById('settingThreshold').value = state.settings.fuzzy_match_threshold || 0.6;
     document.getElementById('thresholdVal').textContent = state.settings.fuzzy_match_threshold || 0.6;
@@ -1264,7 +1374,7 @@ async function loadSettings() {
 async function saveSettings() {
   const data = {
     storage_path: document.getElementById('settingStoragePath').value.trim(),
-    web_port: parseInt(document.getElementById('settingWebPort').value) || 5000,
+    web_port: parseInt(document.getElementById('settingWebPort').value) || 5099,
     webdav_port: parseInt(document.getElementById('settingWebdavPort').value) || 5001,
     fuzzy_match_threshold: parseFloat(document.getElementById('settingThreshold').value) || 0.6,
     auto_sort: document.getElementById('settingAutoSort').checked,

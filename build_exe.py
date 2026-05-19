@@ -1,4 +1,4 @@
-"""PyInstaller build script for DebManager.
+"""PyInstaller build script for IOS_Plugin.
 
 Build executable:
     python build_exe.py
@@ -29,7 +29,7 @@ build_dir = ROOT / 'build'
 
 # PyInstaller arguments
 args = [
-    '--name=DebManager',
+    '--name=IOS_Plugin',
     '--onefile',                    # Single executable file
     '--console',                    # Show console window for debugging
     '--clean',                      # Clean cache
@@ -51,7 +51,7 @@ args = [
 
 if __name__ == '__main__':
     print('=' * 55)
-    print('  Building DebManager executable...')
+    print('  Building IOS_Plugin executable...')
     print('=' * 55)
     print(f'  Source: {ROOT}')
     print(f'  Output: {dist_dir}')
@@ -59,5 +59,5 @@ if __name__ == '__main__':
     run(args)
     print('\n' + '=' * 55)
     print('  Build complete!')
-    print(f'  Executable: {dist_dir / "DebManager.exe"}')
+    print(f'  Executable: {dist_dir / "IOS_Plugin.exe"}')
     print('=' * 55)

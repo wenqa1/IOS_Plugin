@@ -1,13 +1,13 @@
-# IOS_Plugin - iOS 越狱插件管理工具
+# IOS_Plugin - iOS 插件管理工具
 
-通过 WebDAV 快捷传输和管理 iOS 越狱插件（`.deb`），支持自动识别、版本比对、分类归档，提供可视化操作面板。
+通过 WebDAV 快捷传输和管理 iOS 插件（`.deb`），支持自动识别、版本比对、分类归档，提供可视化操作面板。
 
 ## 功能特点
 
 ### 📦 插件表管理
 - 管理插件识别库：**插件名称**、**关键词**、**备注**
 - 支持增删改查，关键词用于文件名模糊匹配
-- 内置 10 个常用越狱插件（Apple File Conduit 2、Filza、iCleaner Pro 等）
+- 内置 10 个常用插件（Apple File Conduit 2、Filza、iCleaner Pro 等）
 - 可重置为默认列表
 
 ### 🔍 智能匹配排序
@@ -61,7 +61,7 @@ python main.py
 
 | 参数 | 说明 |
 |------|------|
-| `--port PORT` | Web 管理面板端口（默认 5000） |
+| `--port PORT` | Web 管理面板端口（默认 5099） |
 | `--webdav-port PORT` | WebDAV 端口（默认 5001） |
 | `--no-browser` | 不自动打开浏览器 |
 | `--no-webdav` | 不启动 WebDAV 服务 |
@@ -69,10 +69,12 @@ python main.py
 启动后终端会显示访问地址：
 
 ```
-Web UI:     http://localhost:5000
-WebDAV:     http://localhost:5001
-局域网 Web: http://<本机IP>:5000
-局域网 DAV: http://<本机IP>:5001
+ Web UI:     http://localhost:5099
+  WebDAV:     http://localhost:5001
+  局域网 Web: http://localhost:5099
+  局域网 DAV: http://localhost:5001
+  存储路径:   IOS_Plugin\data
+  数据目录:   IOS_Plugin\data
 ```
 
 ### 构建可执行文件
@@ -81,7 +83,7 @@ WebDAV:     http://localhost:5001
 python build_exe.py
 ```
 
-生成 `dist/DebManager.exe`，无需 Python 环境即可运行。
+生成 `dist/IOS_Plugin.exe`，无需 Python 环境即可运行。
 
 ---
 
@@ -90,7 +92,7 @@ python build_exe.py
 ### 基本工作流
 
 ```
-手机上传 deb → 日期文件夹 → 排序匹配 → 输出目录（按插件归档）
+上传 deb → 日期文件夹 → 排序匹配 → 输出目录（按插件归档）
 ```
 
 1. **新建文件夹** — 在「文件夹」页新建日期文件夹（自动以 MMDD 命名）

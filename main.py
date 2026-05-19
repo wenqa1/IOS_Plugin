@@ -28,7 +28,34 @@ logging.basicConfig(
     format='[%(asctime)s] %(levelname)s %(name)s: %(message)s',
     datefmt='%H:%M:%S',
 )
-logger = logging.getLogger('debmanager')
+logger = logging.getLogger('IOS_Plugin')
+
+
+def load_ip_config(settings):
+    """Load network config from IP.txt if it exists."""
+    ip_file = Path(os.path.dirname(os.path.abspath(__file__))) / 'IP.txt'
+    if not ip_file.exists():
+        return
+    overrides = {}
+    for line in ip_file.read_text(encoding='utf-8').splitlines():
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+        if '=' in line:
+            key, val = line.split('=', 1)
+            key = key.strip().upper()
+            val = val.strip()
+            if key == 'WEB_HOST':
+                overrides['web_host'] = val
+            elif key == 'WEB_PORT':
+                overrides['web_port'] = int(val)
+            elif key == 'WEBDAV_HOST':
+                overrides['webdav_host'] = val
+            elif key == 'WEBDAV_PORT':
+                overrides['webdav_port'] = int(val)
+    if overrides:
+        settings.update(overrides)
+        logger.info('Loaded config from IP.txt: %s', overrides)
 
 
 def get_data_dir():
@@ -42,16 +69,18 @@ def get_data_dir():
 def start_webdav(settings):
     """Start the WebDAV server in a background thread."""
     from wsgidav.wsgidav_app import WsgiDAVApp
-    from wsgidav.fs_dav_provider import FilesystemDavProvider
+    from wsgidav.fs_dav_provider import FilesystemProvider
+    from cheroot import wsgi
 
     webdav_root = str(settings.webdav_root)
+    host = settings.get('webdav_host', '0.0.0.0')
     port = settings.get('webdav_port', 5001)
 
     config = {
-        'host': '0.0.0.0',
+        'host': host,
         'port': port,
         'provider_mapping': {
-            '/': FilesystemDavProvider(webdav_root),
+            '/': FilesystemProvider(webdav_root),
         },
         'verbose': 0,
         'logging': {
@@ -62,7 +91,6 @@ def start_webdav(settings):
                 '*': True,  # Allow anonymous access
             }
         },
-        'middleware_stack': None,  # Use default
     }
 
     # Suppress wsgidav logging
@@ -70,12 +98,16 @@ def start_webdav(settings):
 
     try:
         app = WsgiDAVApp(config)
-        logger.info('WebDAV server started on http://0.0.0.0:%s', port)
+        logger.info('WebDAV server started on http://%s:%s', host, port)
         logger.info('WebDAV root: %s', webdav_root)
 
-        # Run WebDAV in a way that supports keyboard interrupt
-        from wsgidav.server.server_cli import _run
-        _run(app, config)
+        server = wsgi.Server(
+            bind_addr=(config['host'], config['port']),
+            wsgi_app=app,
+            server_name=f'WsgiDAV/{port}',
+            numthreads=10,
+        )
+        server.start()
     except Exception as e:
         logger.error('WebDAV server error: %s', e)
 
@@ -98,7 +130,10 @@ def main():
     settings = Settings(data_dir)
     plugin_table = PluginTable(data_dir)
 
-    # Override ports from command line
+    # Load IP.txt config (overrides defaults, overridden by CLI)
+    load_ip_config(settings)
+
+    # Override from command line
     if args.port:
         settings.set('web_port', args.port)
     if args.webdav_port:
@@ -109,7 +144,8 @@ def main():
     logger.info('WebDAV root: %s', dirs['webdav'])
     logger.info('Output dir: %s', dirs['output'])
 
-    web_port = settings.get('web_port', 5000)
+    web_port = settings.get('web_port', 5099)
+    web_host = settings.get('web_host', '0.0.0.0')
 
     # Start WebDAV in background thread
     if not args.no_webdav:
@@ -128,13 +164,15 @@ def main():
 
     # Print startup info
     hostname = os.environ.get('COMPUTERNAME', 'localhost')
+    webdav_host = settings.get('webdav_host', '0.0.0.0')
+    webdav_port = settings.get('webdav_port', 5001)
     print('\n' + '=' * 55)
-    print('  DebManager - iOS越狱插件管理工具')
+    print('  IOS_Plugin - iOS插件管理工具')
     print('=' * 55)
-    print(f'  Web UI:     http://localhost:{web_port}')
-    print(f'  WebDAV:     http://localhost:{settings.get("webdav_port", 5001)}')
+    print(f'  Web UI:     http://{web_host}:{web_port}')
+    print(f'  WebDAV:     http://{webdav_host}:{webdav_port}')
     print(f'  局域网 Web: http://{hostname}:{web_port}')
-    print(f'  局域网 DAV: http://{hostname}:{settings.get("webdav_port", 5001)}')
+    print(f'  局域网 DAV: http://{hostname}:{webdav_port}')
     print(f'  存储路径:   {settings.storage_path}')
     print(f'  数据目录:   {data_dir}')
     print('=' * 55)
@@ -152,14 +190,14 @@ def main():
     # Run Flask with waitress (production WSGI server)
     try:
         from waitress import serve
-        serve(app, host='0.0.0.0', port=web_port)
+        serve(app, host=web_host, port=web_port)
     except KeyboardInterrupt:
         print('\n服务已停止')
     except Exception as e:
         logger.error('Server error: %s', e)
         # Fallback to Flask dev server
         print('使用开发服务器启动...')
-        app.run(host='0.0.0.0', port=web_port, debug=False, use_reloader=False)
+        app.run(host=web_host, port=web_port, debug=False, use_reloader=False)
 
 
 if __name__ == '__main__':

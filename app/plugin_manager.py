@@ -153,25 +153,36 @@ def extract_name_from_filename(filename):
     """Extract a probable plugin name from a deb filename.
 
     Handles patterns like:
-      package-name_1.2.3.deb        -> package-name
-      PackageName_1.2.3-1.deb       -> PackageName
-      com.example.package_1.0.deb   -> com.example.package
+      package-name_1.2.3.deb             -> package-name
+      PackageName_1.2.3-1.deb            -> PackageName
+      com.example.package_1.0.deb        -> com.example.package
       package-name-1.2.3.deb
+      测试_0.0-1_无根.deb              -> 测试_无根
+      App_Store_1.2.3-beta.deb           -> App_Store
     """
     name = filename
     if name.lower().endswith('.deb'):
         name = name[:-4]
 
-    # Try to strip version: pattern _X.Y.Z or -X.Y.Z at end
-    # Version pattern: starts with digit, contains digits/dots/tildes/hyphens/plus
+    # Split by underscore and filter out version-like parts.
+    # A version part starts with a digit and contains only version characters.
+    version_segment = re.compile(r'^\d[\d\.\~\-\+]*$')
+    parts = name.split('_')
+    non_version = [p for p in parts if not version_segment.match(p)]
+
+    # Only use new logic when underscores exist AND at least one version part was found
+    if len(parts) > 1 and len(non_version) != len(parts):
+        return '_'.join(non_version)
+
+    # Fallback: strip version suffix at end (hyphen-separated names like package-name-1.2.3)
     version_pattern = r'[_\-]\d+[\d\.\~\-\+]*(?:-\d+)?$'
     stripped = re.sub(version_pattern, '', name)
 
-    # If stripping didn't change much, try more aggressive
-    if len(stripped) == len(name):
-        version_pattern2 = r'[-]\d+[\d\.]*$'
-        stripped = re.sub(version_pattern2, '', name)
+    if len(stripped) < len(name):
+        return stripped.strip('_- ')
 
+    version_pattern2 = r'[-]\d+[\d\.]*$'
+    stripped = re.sub(version_pattern2, '', name)
     return stripped.strip('_- ')
 
 
@@ -246,6 +257,35 @@ def get_deb_version(filepath):
     return None
 
 
+def _extract_version_from_filename(filename):
+    """Try to extract version from a deb filename.
+
+    Handles patterns like:
+      name_1.2.3.deb          -> 1.2.3
+      name_1.2.3-1.deb        -> 1.2.3-1
+      name_0.0-1_desc.deb     -> 0.0-1  (version in middle)
+      name-1.2.3.deb
+    """
+    name = filename
+    if name.lower().endswith('.deb'):
+        name = name[:-4]
+
+    # Look for a version segment: starts with digit, followed by digits/dots/tildes/hyphens/pluses
+    version_re = re.compile(r'\b\d[\d\.\~\-\+]*\b')
+    # Split by underscores and find the first part that looks like a version
+    for part in name.split('_'):
+        part = part.strip()
+        if version_re.fullmatch(part):
+            return part
+
+    # Try matching at end for hyphen-separated
+    match = re.search(r'[-](\d[\d\.\~]*)$', name)
+    if match:
+        return match.group(1)
+
+    return ''
+
+
 def scan_folder(folder_path):
     """Scan a folder for .deb files and return info about each."""
     folder = Path(folder_path)
@@ -268,7 +308,7 @@ def scan_folder(folder_path):
                 info['display_name'] = control.get('Name', '')
             else:
                 info['package'] = ''
-                info['version'] = ''
+                info['version'] = _extract_version_from_filename(f.name)
                 info['display_name'] = ''
             results.append(info)
 
@@ -303,7 +343,9 @@ def sort_folder(folder_path, settings, plugin_table):
         match = match_plugin(f.name, table, control, threshold)
 
         if match:
-            version = control.get('Version', 'unknown') if control else 'unknown'
+            version = control.get('Version', '') if control else _extract_version_from_filename(f.name)
+            if not version:
+                version = 'unknown'
 
             # Flat output: PluginName_Version.deb
             safe_name = match['name'].replace('/', '_').replace('\\', '_')
@@ -353,20 +395,34 @@ def sort_folder(folder_path, settings, plugin_table):
 def _find_existing_deb(output_dir, control, plugin_name):
     """Find a previously sorted deb for the same plugin in flat output.
 
-    Matches by comparing the control file's Name/Package fields against
-    the plugin table name (via normalized comparison).
+    Matches by output filename prefix (PluginName_Version.deb).
+    Falls back to control-based matching for real debs when filename is ambiguous.
     """
-    if not output_dir.exists() or not control:
+    if not output_dir.exists():
         return None
     norm_plugin = normalize_name(plugin_name)
     for f in output_dir.iterdir():
         if f.suffix.lower() != '.deb' or not f.is_file():
             continue
-        ctrl = parse_deb(str(f))
-        if ctrl:
-            ctrl_name = ctrl.get('Name', '') or ctrl.get('Package', '')
-            if normalize_name(ctrl_name) == norm_plugin:
-                return {'version': ctrl.get('Version', ''), 'path': f}
+
+        # Strategy 1: Match by filename prefix — works for all files
+        stem = f.stem
+        if '_' in stem:
+            name_part, ver_part = stem.rsplit('_', 1)
+        else:
+            name_part = stem
+            ver_part = ''
+
+        if normalize_name(name_part) == norm_plugin:
+            return {'version': ver_part, 'path': f}
+
+        # Strategy 2: Match by control data (for real debs where filename differs)
+        if control:
+            ctrl = parse_deb(str(f))
+            if ctrl:
+                ctrl_name = ctrl.get('Name', '') or ctrl.get('Package', '')
+                if normalize_name(ctrl_name) == norm_plugin:
+                    return {'version': ctrl.get('Version', ''), 'path': f}
     return None
 
 
@@ -384,7 +440,10 @@ def get_output_summary(output_dir, plugin_table=None):
         if f.suffix.lower() != '.deb' or not f.is_file():
             continue
         control = parse_deb(str(f))
-        version = control.get('Version', '') if control else ''
+        if control:
+            version = control.get('Version', '')
+        else:
+            version = _extract_version_from_filename(f.name)
 
         # Extract plugin name from filename: PluginName_Version.deb
         stem = f.stem
@@ -401,6 +460,40 @@ def get_output_summary(output_dir, plugin_table=None):
         })
 
     return results
+
+
+def scan_webdav_files(webdav_root):
+    """Scan all files in the WebDAV root directory."""
+    root = Path(webdav_root)
+    if not root.exists():
+        return []
+
+    items = []
+    for f in sorted(root.iterdir()):
+        if not f.is_dir():
+            continue
+        files = []
+        for entry in sorted(f.iterdir()):
+            if entry.is_file():
+                control = parse_deb(str(entry))
+                if control:
+                    version = control.get('Version', '')
+                else:
+                    version = _extract_version_from_filename(entry.name)
+                files.append({
+                    'filename': entry.name,
+                    'version': version,
+                    'size': entry.stat().st_size,
+                    'modified': datetime.fromtimestamp(entry.stat().st_mtime).isoformat(),
+                })
+        items.append({
+            'folder': f.name,
+            'file_count': len(files),
+            'total_size': sum(ff['size'] for ff in files),
+            'modified': datetime.fromtimestamp(f.stat().st_mtime).isoformat(),
+            'files': files,
+        })
+    return items
 
 
 def get_date_folders(webdav_root):
@@ -424,6 +517,22 @@ def get_date_folders(webdav_root):
     return sorted(folders, key=lambda x: x['name'], reverse=True)
 
 
-def suggest_folder_name():
-    """Generate a default folder name based on current date (MMDD)."""
-    return datetime.now().strftime('%m%d')
+def suggest_folder_name(root_path=None):
+    """Generate a default folder name based on current date (MMDD).
+
+    If root_path is given, ensures uniqueness by appending (1), (2), etc.
+    when the base name already exists.
+    """
+    base = datetime.now().strftime('%m%d')
+    if root_path is None:
+        return base
+
+    if not (Path(root_path) / base).exists():
+        return base
+
+    counter = 1
+    while True:
+        name = f"{base}({counter})"
+        if not (Path(root_path) / name).exists():
+            return name
+        counter += 1
