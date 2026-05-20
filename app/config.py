@@ -2,7 +2,6 @@
 
 import json
 import os
-import shutil
 from pathlib import Path
 
 DEFAULT_SETTINGS = {

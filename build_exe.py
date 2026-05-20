@@ -13,12 +13,10 @@ from pathlib import Path
 
 # Ensure PyInstaller is available
 try:
-    import PyInstaller
+    from PyInstaller.__main__ import run
 except ImportError:
     print("PyInstaller not found. Install it with: pip install pyinstaller")
     sys.exit(1)
-
-from PyInstaller.__main__ import run
 
 # Project paths
 ROOT = Path(os.path.dirname(os.path.abspath(__file__)))

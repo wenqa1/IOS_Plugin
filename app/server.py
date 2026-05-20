@@ -1,19 +1,15 @@
 """Flask server - web UI and REST API for plugin management."""
 
-import json
 import os
 import logging
-import threading
 from pathlib import Path
 from datetime import datetime
 from urllib.parse import unquote
 
 from flask import (
     Flask, render_template, request, jsonify, send_from_directory,
-    abort, Response, stream_with_context,
 )
 
-from .config import Settings, PluginTable
 from .plugin_manager import (
     sort_folder, scan_folder, get_output_summary, get_date_folders,
     suggest_folder_name, match_plugin, parse_deb, scan_webdav_files,

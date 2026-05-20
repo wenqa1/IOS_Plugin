@@ -258,14 +258,6 @@ def match_plugin(filename, plugin_table, control_data=None, threshold=0.6):
     return None
 
 
-def get_deb_version(filepath):
-    """Extract version from a deb file by parsing control data."""
-    control = parse_deb(str(filepath))
-    if control and 'Version' in control:
-        return control['Version']
-    return None
-
-
 def _extract_version_from_filename(filename):
     """Try to extract version from a deb filename.
 
