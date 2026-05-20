@@ -583,6 +583,45 @@ code {
 @media (max-width: 768px) {
   .filemgr-pane { max-height: 50vh; }
 }
+
+/* Injected Plugins */
+.injected-list {
+  columns: 2;
+  column-gap: 2rem;
+}
+.injected-item {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.95rem;
+  break-inside: avoid;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.injected-item:last-child { border-bottom: none; }
+.injected-bullet {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+.injected-version {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+.injected-footer {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-medium);
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+.injected-footer i { margin-right: 4px; }
+@media (max-width: 768px) {
+  .injected-list { columns: 1; }
+  .injected-footer { flex-direction: column; gap: 0.3rem; }
+}
 </style>
 </head>
 <body>
@@ -628,6 +667,11 @@ code {
       <li class="nav-item">
         <a class="nav-link" data-page="settings" href="#">
           <i class="bi bi-gear"></i>设置
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-page="injected" href="#">
+          <i class="bi bi-droplet"></i>已注入插件
         </a>
       </li>
     </ul>
@@ -1040,6 +1084,27 @@ code {
       </div>
     </section>
 
+    <!-- ==================== INJECTED ==================== -->
+    <section id="page-injected" class="page-section">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4><i class="bi bi-droplet"></i> 已注入插件</h4>
+        <div>
+          <button class="btn btn-outline-primary btn-sm me-1" onclick="copyInjected()">
+            <i class="bi bi-clipboard"></i> 复制
+          </button>
+          <button class="btn btn-outline-secondary btn-sm" onclick="loadInjected()">
+            <i class="bi bi-arrow-clockwise"></i> 刷新
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body p-4" id="injectedBody">
+          <div class="text-center text-secondary py-4">加载中...</div>
+        </div>
+      </div>
+    </section>
+
   </main>
 </div>
 
@@ -1179,6 +1244,7 @@ function switchPage(page) {
   if (page === 'webdav') loadFileManager();
   if (page === 'output') loadOutput();
   if (page === 'settings') loadSettings();
+  if (page === 'injected') loadInjected();
 }
 
 // ===================== API HELPERS =====================
@@ -1824,6 +1890,68 @@ async function saveSettings() {
 
 function resetStoragePath() {
   document.getElementById('settingStoragePath').value = '';
+}
+
+// ===================== INJECTED PLUGINS =====================
+async function loadInjected() {
+  try {
+    const output = await api('/api/output');
+    renderInjected(output);
+  } catch (e) {
+    document.getElementById('injectedBody').innerHTML = '<div class="text-center text-secondary py-4">加载失败</div>';
+  }
+}
+
+let _injectedData = null;
+
+function copyInjected() {
+  if (!_injectedData || !_injectedData.length) {
+    showToast('没有可复制的插件列表', '提示', 'warning');
+    return;
+  }
+  const now = new Date();
+  const syear = String(now.getFullYear()).slice(2);
+  const sdate = syear + ' 年' + (now.getMonth() + 1) + ' 月' + now.getDate() + ' 日';
+  let text = '已注入插件:\n';
+  _injectedData.forEach(p => {
+    const name = p.plugin_name || '未知';
+    const ver = p.version || '';
+    text += '• ' + name + (ver ? ' ' + ver : '') + '\n';
+  });
+  text += '\n更新于 ' + sdate;
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('已复制到剪贴板', '成功', 'success');
+  }).catch(() => {
+    showToast('复制失败', '错误', 'danger');
+  });
+}
+
+function renderInjected(data) {
+  _injectedData = data;
+  const body = document.getElementById('injectedBody');
+  if (!data || !data.length) {
+    body.innerHTML = '<div class="empty-state"><i class="bi bi-inbox"></i><p>暂无已注入插件</p></div>';
+    return;
+  }
+
+  const now = new Date();
+  const dateStr = now.getFullYear() + ' 年' + (now.getMonth() + 1) + ' 月' + now.getDate() + ' 日';
+  const timeStr = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+
+  let html = '<div class="injected-list">';
+  data.forEach(p => {
+    const name = p.plugin_name || '未知';
+    const ver = p.version ? ' ' + p.version : '';
+    html += `<div class="injected-item"><span class="injected-bullet">•</span> ${escHtml(name)}${ver ? ' <span class="injected-version">' + escHtml(ver) + '</span>' : ''}</div>`;
+  });
+  html += '</div>';
+
+  html += '<div class="injected-footer">';
+  html += '<div class="injected-update"><i class="bi bi-calendar3"></i> 更新于 ' + dateStr + '</div>';
+  html += '<div class="injected-time"><i class="bi bi-clock"></i> 输出时间 ' + dateStr + ' ' + timeStr + '</div>';
+  html += '</div>';
+
+  body.innerHTML = html;
 }
 
 // ===================== UTILITIES =====================
