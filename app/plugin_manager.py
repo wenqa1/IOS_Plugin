@@ -165,10 +165,19 @@ def extract_name_from_filename(filename):
         name = name[:-4]
 
     # Split by underscore and filter out version-like parts.
-    # A version part starts with a digit and contains only version characters.
-    version_segment = re.compile(r'^\d[\d\.\~\-\+]*$')
+    # A version part: starts with digit, or contains Chinese version keywords.
+    version_segment = re.compile(
+        r'^(\d[\d\.\~\-\+]*'           # standard: 1.2.3, 1.0~beta1
+        r'|.*?版V?\d[\d\.]*'           # Chinese: 体验版V10, 正式版V3
+        r'|V\d[\d\.]*'                 # V-prefixed: V1.0, V10
+        r')$', re.IGNORECASE
+    )
+    # Known non-name suffixes to filter out (rootless, jailbreak indicators, etc.)
+    _filter_suffixes = {'无根', '有根', 'rootless', 'jailbreak', 'jb'}
     parts = name.split('_')
-    non_version = [p for p in parts if not version_segment.match(p)]
+    non_version = [p for p in parts
+                   if not version_segment.match(p)
+                   and p.lower() not in _filter_suffixes]
 
     # Only use new logic when underscores exist AND at least one version part was found
     if len(parts) > 1 and len(non_version) != len(parts):
@@ -270,8 +279,13 @@ def _extract_version_from_filename(filename):
     if name.lower().endswith('.deb'):
         name = name[:-4]
 
-    # Look for a version segment: starts with digit, followed by digits/dots/tildes/hyphens/pluses
-    version_re = re.compile(r'\b\d[\d\.\~\-\+]*\b')
+    # Look for a version segment: standard or Chinese version string
+    version_re = re.compile(
+        r'^(\d[\d\.\~\-\+]*'           # standard: 1.2.3, 1.0-beta1
+        r'|.*?版V?\d[\d\.]*'           # Chinese: 体验版V10, 正式版V3
+        r'|V\d[\d\.]*'                 # V-prefixed: V1.0, V10
+        r')$', re.IGNORECASE
+    )
     # Split by underscores and find the first part that looks like a version
     for part in name.split('_'):
         part = part.strip()
@@ -280,6 +294,11 @@ def _extract_version_from_filename(filename):
 
     # Try matching at end for hyphen-separated
     match = re.search(r'[-](\d[\d\.\~]*)$', name)
+    if match:
+        return match.group(1)
+
+    # Try matching Chinese version at end (e.g. 体验版V10 at filename end)
+    match = re.search(r'(.*?版V?\d[\d\.]*)$', name)
     if match:
         return match.group(1)
 
@@ -304,7 +323,7 @@ def scan_folder(folder_path):
             }
             if control:
                 info['package'] = control.get('Package', '')
-                info['version'] = control.get('Version', '')
+                info['version'] = _extract_version_from_filename(f.name) or control.get('Version', '')
                 info['display_name'] = control.get('Name', '')
             else:
                 info['package'] = ''
@@ -343,7 +362,7 @@ def sort_folder(folder_path, settings, plugin_table):
         match = match_plugin(f.name, table, control, threshold)
 
         if match:
-            version = control.get('Version', '') if control else _extract_version_from_filename(f.name)
+            version = _extract_version_from_filename(f.name) or (control.get('Version', '') if control else '')
             if not version:
                 version = 'unknown'
 
@@ -440,10 +459,9 @@ def get_output_summary(output_dir):
         if f.suffix.lower() != '.deb' or not f.is_file():
             continue
         control = parse_deb(str(f))
-        if control:
+        version = _extract_version_from_filename(f.name)
+        if not version and control:
             version = control.get('Version', '')
-        else:
-            version = _extract_version_from_filename(f.name)
 
         # Extract plugin name from filename: PluginName_Version.deb
         stem = f.stem
